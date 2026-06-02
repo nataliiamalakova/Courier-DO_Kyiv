@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<title>Kyiv · Courier DO & AR distribution · 25-31 May 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --panel-2: #1c2129;
+    --line: #2a313c;
+    --text: #e6edf3;
+    --muted: #8b96a3;
+    --accent: #4f9dff;
+    --accent-2: #ffb54f;
+    --good: #3fb950;
+    --bad: #f85149;
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--text); margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter",
+                 "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 24px 32px 64px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 16px; margin: 0 0 12px; letter-spacing: -0.01em; color: var(--text); }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .kpis {
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 1300px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
+  @media (max-width: 700px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .kpi {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px 14px;
+  }
+  .kpi .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .kpi .value { font-size: 20px; font-weight: 600; margin-top: 4px; }
+  .kpi .meta { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab {
+    background: var(--panel); border: 1px solid var(--line);
+    color: var(--text); padding: 8px 14px; border-radius: 8px;
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    transition: all 0.15s;
+  }
+  .tab:hover { background: var(--panel-2); border-color: #3a414c; }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #0b1117; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 16px 18px;
+  }
+  .card-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .card-title .total { color: var(--muted); font-size: 12px; }
+  .chart-wrap { position: relative; height: 240px; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin-top: 12px;
+    font-size: 13px;
+  }
+  th, td {
+    text-align: right; padding: 6px 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  tr:last-child td { border-bottom: none; }
+  td.pct { color: var(--muted); }
+  .bar {
+    display: inline-block; height: 6px; background: var(--accent);
+    border-radius: 3px; vertical-align: middle; margin-right: 8px;
+    min-width: 1px;
+  }
+  .bar.ar { background: var(--accent-2); }
+
+  .hide { display: none !important; }
+
+  .section-title {
+    font-size: 12px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.08em; margin: 28px 0 10px;
+  }
+  .note {
+    font-size: 12px; color: var(--muted); margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+  <h1>Kyiv · DO & AR% distribution per courier</h1>
+  <div class="sub">City: Kyiv · Period: 25 - 31 May 2026 · Active courier = courier with online hours &gt; 0 that day · Source: Courier Performance Looker export</div>
+
+  <div class="section-title">Daily totals</div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="section-title">Daily distribution</div>
+  <div class="tabs" id="dayTabs"></div>
+
+  <div id="dayPanels"></div>
+
+  <div class="section-title">7-day aggregated summary</div>
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">
+        <h2>DO · Total delivered orders per courier (sum)</h2>
+        <div class="total" id="doSummaryTotal"></div>
+      </div>
+      <div class="chart-wrap"><canvas id="doSummaryChart"></canvas></div>
+      <table id="doSummaryTable"></table>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <h2>AR% · Period acceptance rate per courier</h2>
+        <div class="total" id="arSummaryTotal"></div>
+      </div>
+      <div class="chart-wrap"><canvas id="arSummaryChart"></canvas></div>
+      <table id="arSummaryTable"></table>
+      <div class="note">AR% = sum(accepted offers) / sum(proposed offers) per courier across the period. Couriers with no offers in the period excluded.</div>
+    </div>
+  </div>
+
+  <div class="section-title">Daily comparison · stacked share</div>
+  <div class="grid">
+    <div class="card">
+      <div class="card-title"><h2>DO bucket share by day</h2></div>
+      <div class="chart-wrap" style="height:280px"><canvas id="doStackedChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><h2>AR% bucket share by day</h2></div>
+      <div class="chart-wrap" style="height:280px"><canvas id="arStackedChart"></canvas></div>
+    </div>
+  </div>
+
+<script id="report-data" type="application/json">
+{
+  "city": "Kyiv",
+  "city_id": 158,
+  "date_range": {
+    "start": "2026-05-25",
+    "end": "2026-05-31"
+  },
+  "dates": [
+    "2026-05-25",
+    "2026-05-26",
+    "2026-05-27",
+    "2026-05-28",
+    "2026-05-29",
+    "2026-05-30",
+    "2026-05-31"
+  ],
+  "daily_totals": {
+    "2026-05-25": {
+      "active_couriers": 1441,
+      "couriers_with_offers": 1236,
+      "total_delivered": 6381.0,
+      "total_accepted": 6923.035,
+      "total_proposed": 11143.0
+    },
+    "2026-05-26": {
+      "active_couriers": 1529,
+      "couriers_with_offers": 1273,
+      "total_delivered": 6496.0,
+      "total_accepted": 6986.115000000001,
+      "total_proposed": 10830.0
+    },
+    "2026-05-27": {
+      "active_couriers": 1524,
+      "couriers_with_offers": 1344,
+      "total_delivered": 6911.0,
+      "total_accepted": 7676.129999999999,
+      "total_proposed": 13163.0
+    },
+    "2026-05-28": {
+      "active_couriers": 1577,
+      "couriers_with_offers": 1355,
+      "total_delivered": 7536.0,
+      "total_accepted": 8065.936000000001,
+      "total_proposed": 13585.0
+    },
+    "2026-05-29": {
+      "active_couriers": 1490,
+      "couriers_with_offers": 1333,
+      "total_delivered": 8190.0,
+      "total_accepted": 9131.942,
+      "total_proposed": 16627.0
+    },
+    "2026-05-30": {
+      "active_couriers": 1497,
+      "couriers_with_offers": 1333,
+      "total_delivered": 8775.0,
+      "total_accepted": 9404.373,
+      "total_proposed": 15630.0
+    },
+    "2026-05-31": {
+      "active_couriers": 1394,
+      "couriers_with_offers": 1243,
+      "total_delivered": 9060.0,
+      "total_accepted": 9523.332999999999,
+      "total_proposed": 15023.0
+    }
+  },
+  "do_buckets": [
+    "0",
+    "1-5",
+    "6-10",
+    "11-17",
+    "18-20",
+    "21-25",
+    "26+"
+  ],
+  "ar_buckets": [
+    "0%",
+    "1-20%",
+    "21-40%",
+    "41-60%",
+    "61-80%",
+    "81-99%",
+    "100%"
+  ],
+  "do_summary_buckets": [
+    "0",
+    "1-20",
+    "21-30",
+    "31-40",
+    "41-50",
+    "51-60",
+    "60+"
+  ],
+  "do_daily": {
+    "2026-05-25": {
+      "0": 375,
+      "1-5": 578,
+      "6-10": 336,
+      "11-17": 125,
+      "18-20": 13,
+      "21-25": 14,
+      "26+": 0
+    },
+    "2026-05-26": {
+      "0": 424,
+      "1-5": 626,
+      "6-10": 315,
+      "11-17": 137,
+      "18-20": 14,
+      "21-25": 13,
+      "26+": 0
+    },
+    "2026-05-27": {
+      "0": 378,
+      "1-5": 625,
+      "6-10": 350,
+      "11-17": 142,
+      "18-20": 17,
+      "21-25": 11,
+      "26+": 1
+    },
+    "2026-05-28": {
+      "0": 402,
+      "1-5": 617,
+      "6-10": 347,
+      "11-17": 166,
+      "18-20": 30,
+      "21-25": 11,
+      "26+": 4
+    },
+    "2026-05-29": {
+      "0": 382,
+      "1-5": 516,
+      "6-10": 327,
+      "11-17": 173,
+      "18-20": 55,
+      "21-25": 33,
+      "26+": 4
+    },
+    "2026-05-30": {
+      "0": 386,
+      "1-5": 493,
+      "6-10": 338,
+      "11-17": 169,
+      "18-20": 26,
+      "21-25": 63,
+      "26+": 22
+    },
+    "2026-05-31": {
+      "0": 318,
+      "1-5": 473,
+      "6-10": 288,
+      "11-17": 178,
+      "18-20": 57,
+      "21-25": 58,
+      "26+": 22
+    }
+  },
+  "ar_daily": {
+    "2026-05-25": {
+      "0%": 135,
+      "1-20%": 25,
+      "21-40%": 136,
+      "41-60%": 205,
+      "61-80%": 212,
+      "81-99%": 169,
+      "100%": 354
+    },
+    "2026-05-26": {
+      "0%": 138,
+      "1-20%": 28,
+      "21-40%": 116,
+      "41-60%": 198,
+      "61-80%": 249,
+      "81-99%": 174,
+      "100%": 370
+    },
+    "2026-05-27": {
+      "0%": 155,
+      "1-20%": 49,
+      "21-40%": 146,
+      "41-60%": 230,
+      "61-80%": 290,
+      "81-99%": 148,
+      "100%": 326
+    },
+    "2026-05-28": {
+      "0%": 145,
+      "1-20%": 42,
+      "21-40%": 141,
+      "41-60%": 257,
+      "61-80%": 261,
+      "81-99%": 164,
+      "100%": 345
+    },
+    "2026-05-29": {
+      "0%": 163,
+      "1-20%": 61,
+      "21-40%": 184,
+      "41-60%": 237,
+      "61-80%": 267,
+      "81-99%": 174,
+      "100%": 247
+    },
+    "2026-05-30": {
+      "0%": 170,
+      "1-20%": 55,
+      "21-40%": 165,
+      "41-60%": 215,
+      "61-80%": 253,
+      "81-99%": 203,
+      "100%": 272
+    },
+    "2026-05-31": {
+      "0%": 133,
+      "1-20%": 42,
+      "21-40%": 132,
+      "41-60%": 206,
+      "61-80%": 235,
+      "81-99%": 225,
+      "100%": 270
+    }
+  },
+  "do_summary": {
+    "0": 826,
+    "1-20": 1431,
+    "21-30": 262,
+    "31-40": 195,
+    "41-50": 128,
+    "51-60": 100,
+    "60+": 197
+  },
+  "ar_summary": {
+    "0%": 349,
+    "1-20%": 87,
+    "21-40%": 341,
+    "41-60%": 466,
+    "61-80%": 594,
+    "81-99%": 592,
+    "100%": 332
+  }
+}
+</script>
+<script>
+const DATA = JSON.parse(document.getElementById("report-data").textContent);
+const DO_BUCKETS = DATA.do_buckets;
+const AR_BUCKETS = DATA.ar_buckets;
+const DO_SUMMARY_BUCKETS = DATA.do_summary_buckets;
+const DATES = DATA.dates;
+
+const fmt = (n) => Number(n).toLocaleString("en-US");
+const pct = (n, total) => total ? ((n / total) * 100) : 0;
+const pctStr = (n, total) => total ? ((n / total) * 100).toFixed(1) + "%" : "0.0%";
+
+const COLORS = {
+  do: "#4f9dff",
+  ar: "#ffb54f",
+};
+
+const STACK_PALETTE = [
+  "#6b7280", "#4f9dff", "#5fc88a", "#f0c33b",
+  "#f08c33", "#e35d6a", "#a78bfa"
+];
+
+function chartDefaults() {
+  Chart.defaults.color = "#8b96a3";
+  Chart.defaults.borderColor = "#2a313c";
+  Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif';
+  Chart.defaults.font.size = 12;
+}
+chartDefaults();
+
+function renderKpis() {
+  const el = document.getElementById("kpis");
+  el.innerHTML = DATES.map((d) => {
+    const t = DATA.daily_totals[d];
+    const ar = t.total_accepted / t.total_proposed * 100;
+    return `
+      <div class="kpi">
+        <div class="label">${d}</div>
+        <div class="value">${fmt(t.active_couriers)}</div>
+        <div class="meta">${fmt(Math.round(t.total_delivered))} DO · AR ${ar.toFixed(1)}%</div>
+      </div>`;
+  }).join("");
+}
+
+function renderDayTabs() {
+  const tabs = document.getElementById("dayTabs");
+  tabs.innerHTML = DATES.map((d, i) =>
+    `<button class="tab ${i === 0 ? "active" : ""}" data-day="${d}">${d}</button>`
+  ).join("");
+
+  const panels = document.getElementById("dayPanels");
+  panels.innerHTML = DATES.map((d, i) => `
+    <div class="day-panel ${i === 0 ? "" : "hide"}" data-day="${d}">
+      <div class="grid">
+        <div class="card">
+          <div class="card-title">
+            <h2>DO · Delivered orders per courier</h2>
+            <div class="total">Active: <b>${fmt(DATA.daily_totals[d].active_couriers)}</b></div>
+          </div>
+          <div class="chart-wrap"><canvas id="doChart-${d}"></canvas></div>
+          <table id="doTable-${d}"></table>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <h2>AR% · Acceptance rate per courier</h2>
+            <div class="total">With offers: <b>${fmt(DATA.daily_totals[d].couriers_with_offers)}</b></div>
+          </div>
+          <div class="chart-wrap"><canvas id="arChart-${d}"></canvas></div>
+          <table id="arTable-${d}"></table>
+          <div class="note">% from couriers who received at least one offer that day.</div>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  tabs.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".tab");
+    if (!btn) return;
+    const day = btn.dataset.day;
+    document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.day === day));
+    document.querySelectorAll(".day-panel").forEach(p => p.classList.toggle("hide", p.dataset.day !== day));
+  });
+}
+
+function buildBucketTable(tableEl, buckets, counts, total, isAR) {
+  const max = Math.max(...buckets.map(b => counts[b] || 0));
+  let html = `<thead><tr><th>Bucket</th><th>Couriers</th><th>%</th><th></th></tr></thead><tbody>`;
+  buckets.forEach(b => {
+    const c = counts[b] || 0;
+    const p = pct(c, total);
+    const w = max > 0 ? (c / max) * 120 : 0;
+    html += `<tr>
+      <td>${b}</td>
+      <td>${fmt(c)}</td>
+      <td class="pct">${p.toFixed(1)}%</td>
+      <td><span class="bar ${isAR ? "ar" : ""}" style="width:${w}px"></span></td>
+    </tr>`;
+  });
+  html += `</tbody>`;
+  tableEl.innerHTML = html;
+}
+
+function makeBarChart(canvasId, labels, values, total, color) {
+  const ctx = document.getElementById(canvasId);
+  return new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: color,
+        borderRadius: 6,
+        maxBarThickness: 48,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (c) => {
+              const v = values[c.dataIndex];
+              return `${fmt(v)} couriers · ${pctStr(v, total)}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: {
+          beginAtZero: true,
+          grid: { color: "rgba(255,255,255,0.05)" },
+          ticks: { callback: (v) => fmt(v) },
+        },
+      },
+    },
+  });
+}
+
+function renderDayCharts() {
+  DATES.forEach((d) => {
+    const totals = DATA.daily_totals[d];
+    const doTotal = totals.active_couriers;
+    const arTotal = totals.couriers_with_offers;
+
+    const doCounts = DATA.do_daily[d];
+    const doVals = DO_BUCKETS.map(b => doCounts[b] || 0);
+    makeBarChart(`doChart-${d}`, DO_BUCKETS, doVals, doTotal, COLORS.do);
+    buildBucketTable(document.getElementById(`doTable-${d}`), DO_BUCKETS, doCounts, doTotal, false);
+
+    const arCounts = DATA.ar_daily[d];
+    const arVals = AR_BUCKETS.map(b => arCounts[b] || 0);
+    makeBarChart(`arChart-${d}`, AR_BUCKETS, arVals, arTotal, COLORS.ar);
+    buildBucketTable(document.getElementById(`arTable-${d}`), AR_BUCKETS, arCounts, arTotal, true);
+  });
+}
+
+function renderSummary() {
+  const doTotal = DO_SUMMARY_BUCKETS.reduce((s, b) => s + (DATA.do_summary[b] || 0), 0);
+  const arTotal = AR_BUCKETS.reduce((s, b) => s + (DATA.ar_summary[b] || 0), 0);
+
+  document.getElementById("doSummaryTotal").innerHTML =
+    `Total active couriers: <b>${fmt(doTotal)}</b>`;
+  document.getElementById("arSummaryTotal").innerHTML =
+    `Couriers with offers: <b>${fmt(arTotal)}</b>`;
+
+  const doVals = DO_SUMMARY_BUCKETS.map(b => DATA.do_summary[b] || 0);
+  const arVals = AR_BUCKETS.map(b => DATA.ar_summary[b] || 0);
+
+  makeBarChart("doSummaryChart", DO_SUMMARY_BUCKETS, doVals, doTotal, COLORS.do);
+  makeBarChart("arSummaryChart", AR_BUCKETS, arVals, arTotal, COLORS.ar);
+
+  buildBucketTable(document.getElementById("doSummaryTable"), DO_SUMMARY_BUCKETS, DATA.do_summary, doTotal, false);
+  buildBucketTable(document.getElementById("arSummaryTable"), AR_BUCKETS, DATA.ar_summary, arTotal, true);
+}
+
+function renderStackedShare(canvasId, dailyData, buckets, totalKey) {
+  const datasets = buckets.map((b, i) => ({
+    label: b,
+    backgroundColor: STACK_PALETTE[i % STACK_PALETTE.length],
+    data: DATES.map(d => {
+      const total = DATA.daily_totals[d][totalKey];
+      return pct(dailyData[d][b] || 0, total);
+    }),
+  }));
+  return new Chart(document.getElementById(canvasId), {
+    type: "bar",
+    data: { labels: DATES, datasets },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom", labels: { boxWidth: 10, boxHeight: 10 } },
+        tooltip: {
+          callbacks: {
+            label: (c) => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`,
+          },
+        },
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: {
+          stacked: true, beginAtZero: true, max: 100,
+          grid: { color: "rgba(255,255,255,0.05)" },
+          ticks: { callback: (v) => v + "%" },
+        },
+      },
+    },
+  });
+}
+
+renderKpis();
+renderDayTabs();
+renderDayCharts();
+renderSummary();
+renderStackedShare("doStackedChart", DATA.do_daily, DO_BUCKETS, "active_couriers");
+renderStackedShare("arStackedChart", DATA.ar_daily, AR_BUCKETS, "couriers_with_offers");
+</script>
+</body>
+</html>
