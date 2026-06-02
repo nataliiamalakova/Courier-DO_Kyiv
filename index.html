@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8" />
-<title>Kyiv · Courier DO & AR distribution · 25-31 May 2026</title>
+<title>Kyiv · Courier DO & AR distribution · 18-31 May 2026</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
@@ -22,41 +22,57 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter",
                  "Helvetica Neue", Arial, sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
+    font-size: 14px; line-height: 1.5;
     padding: 24px 32px 64px;
   }
   h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
-  h2 { font-size: 16px; margin: 0 0 12px; letter-spacing: -0.01em; color: var(--text); }
+  h2 { font-size: 16px; margin: 0 0 12px; letter-spacing: -0.01em; }
   .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .section-title {
+    font-size: 12px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.08em; margin: 28px 0 10px;
+  }
+
   .kpis {
-    display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;
-    margin-bottom: 20px;
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;
+    margin-bottom: 8px;
   }
   @media (max-width: 1300px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
   @media (max-width: 700px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
   .kpi {
     background: var(--panel); border: 1px solid var(--line);
-    border-radius: 10px; padding: 12px 14px;
+    border-radius: 10px; padding: 10px 12px;
+    cursor: pointer; transition: all 0.15s;
   }
+  .kpi:hover { border-color: #3a414c; }
+  .kpi.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
   .kpi .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
-  .kpi .value { font-size: 20px; font-weight: 600; margin-top: 4px; }
+  .kpi .label .wd { color: var(--accent); font-weight: 600; }
+  .kpi .value { font-size: 18px; font-weight: 600; margin-top: 2px; }
   .kpi .meta { color: var(--muted); font-size: 11px; margin-top: 2px; }
 
-  .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
-  .tab {
-    background: var(--panel); border: 1px solid var(--line);
-    color: var(--text); padding: 8px 14px; border-radius: 8px;
-    cursor: pointer; font-size: 13px; font-weight: 500;
-    transition: all 0.15s;
+  .weekrow { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; align-items: center; }
+  .weekrow .week-label {
+    color: var(--muted); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.06em; margin-right: 4px; min-width: 56px;
   }
-  .tab:hover { background: var(--panel-2); border-color: #3a414c; }
+  .tab, .qf {
+    background: var(--panel); border: 1px solid var(--line);
+    color: var(--text); padding: 7px 12px; border-radius: 8px;
+    cursor: pointer; font-size: 12px; font-weight: 500;
+    transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tab:hover, .qf:hover { background: var(--panel-2); border-color: #3a414c; }
   .tab.active { background: var(--accent); border-color: var(--accent); color: #0b1117; }
+  .tab .wd { font-weight: 600; }
+  .tab .dt { opacity: 0.7; font-size: 11px; }
+  .tab.active .dt { opacity: 0.85; }
+  .qf.primary { background: var(--accent); border-color: var(--accent); color: #0b1117; }
+
+  .qf-row { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
 
   .grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
   }
   @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
 
@@ -64,82 +80,77 @@
     background: var(--panel); border: 1px solid var(--line);
     border-radius: 12px; padding: 16px 18px;
   }
-  .card-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .card-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
   .card-title .total { color: var(--muted); font-size: 12px; }
-  .chart-wrap { position: relative; height: 240px; }
+  .chart-wrap { position: relative; height: 280px; }
 
   table {
     width: 100%; border-collapse: collapse; margin-top: 12px;
-    font-size: 13px;
+    font-size: 12px;
   }
   th, td {
     text-align: right; padding: 6px 8px;
     border-bottom: 1px solid var(--line);
+    white-space: nowrap;
   }
   th:first-child, td:first-child { text-align: left; }
-  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
   tr:last-child td { border-bottom: none; }
   td.pct { color: var(--muted); }
-  .bar {
-    display: inline-block; height: 6px; background: var(--accent);
-    border-radius: 3px; vertical-align: middle; margin-right: 8px;
-    min-width: 1px;
-  }
-  .bar.ar { background: var(--accent-2); }
+  .table-wrap { overflow-x: auto; margin-top: 8px; }
 
-  .hide { display: none !important; }
-
-  .section-title {
-    font-size: 12px; color: var(--muted); text-transform: uppercase;
-    letter-spacing: 0.08em; margin: 28px 0 10px;
-  }
-  .note {
-    font-size: 12px; color: var(--muted); margin-top: 4px;
-  }
+  .note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .empty { color: var(--muted); padding: 32px; text-align: center; font-size: 13px; }
 </style>
 </head>
 <body>
   <h1>Kyiv · DO & AR% distribution per courier</h1>
-  <div class="sub">City: Kyiv · Period: 25 - 31 May 2026 · Active courier = courier with online hours &gt; 0 that day · Source: Courier Performance Looker export</div>
+  <div class="sub">
+    City: Kyiv · Period: 18 - 31 May 2026 (2 weeks) ·
+    Active courier = courier with online hours &gt; 0 that day ·
+    Click days to compare side-by-side
+  </div>
 
-  <div class="section-title">Daily totals</div>
+  <div class="section-title">Daily totals · click to toggle</div>
   <div class="kpis" id="kpis"></div>
 
-  <div class="section-title">Daily distribution</div>
-  <div class="tabs" id="dayTabs"></div>
+  <div class="section-title">Day selector</div>
+  <div id="weekTabs"></div>
+  <div class="qf-row" id="qfRow"></div>
 
-  <div id="dayPanels"></div>
-
-  <div class="section-title">7-day aggregated summary</div>
+  <div class="section-title" id="compareSectionTitle">Compare selected days</div>
   <div class="grid">
     <div class="card">
       <div class="card-title">
-        <h2>DO · Total delivered orders per courier (sum)</h2>
-        <div class="total" id="doSummaryTotal"></div>
+        <h2>DO · Delivered orders per courier</h2>
+        <div class="total" id="doCompareTotal"></div>
       </div>
-      <div class="chart-wrap"><canvas id="doSummaryChart"></canvas></div>
-      <table id="doSummaryTable"></table>
+      <div class="chart-wrap"><canvas id="doCompareChart"></canvas></div>
+      <div class="table-wrap"><table id="doCompareTable"></table></div>
     </div>
     <div class="card">
       <div class="card-title">
-        <h2>AR% · Period acceptance rate per courier</h2>
-        <div class="total" id="arSummaryTotal"></div>
+        <h2>AR% · Acceptance rate per courier</h2>
+        <div class="total" id="arCompareTotal"></div>
       </div>
-      <div class="chart-wrap"><canvas id="arSummaryChart"></canvas></div>
-      <table id="arSummaryTable"></table>
-      <div class="note">AR% = sum(accepted offers) / sum(proposed offers) per courier across the period. Couriers with no offers in the period excluded.</div>
+      <div class="chart-wrap"><canvas id="arCompareChart"></canvas></div>
+      <div class="table-wrap"><table id="arCompareTable"></table></div>
+      <div class="note">% computed only for couriers who received at least one offer that day.</div>
     </div>
   </div>
 
-  <div class="section-title">Daily comparison · stacked share</div>
+  <div class="section-title">Weekly summary · per courier total over the week</div>
+  <div class="grid" id="weeksGrid"></div>
+
+  <div class="section-title">All 14 days · stacked share</div>
   <div class="grid">
     <div class="card">
       <div class="card-title"><h2>DO bucket share by day</h2></div>
-      <div class="chart-wrap" style="height:280px"><canvas id="doStackedChart"></canvas></div>
+      <div class="chart-wrap" style="height:300px"><canvas id="doStackedChart"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title"><h2>AR% bucket share by day</h2></div>
-      <div class="chart-wrap" style="height:280px"><canvas id="arStackedChart"></canvas></div>
+      <div class="chart-wrap" style="height:300px"><canvas id="arStackedChart"></canvas></div>
     </div>
   </div>
 
@@ -148,10 +159,17 @@
   "city": "Kyiv",
   "city_id": 158,
   "date_range": {
-    "start": "2026-05-25",
+    "start": "2026-05-18",
     "end": "2026-05-31"
   },
   "dates": [
+    "2026-05-18",
+    "2026-05-19",
+    "2026-05-20",
+    "2026-05-21",
+    "2026-05-22",
+    "2026-05-23",
+    "2026-05-24",
     "2026-05-25",
     "2026-05-26",
     "2026-05-27",
@@ -160,7 +178,136 @@
     "2026-05-30",
     "2026-05-31"
   ],
+  "weekday_map": {
+    "2026-05-18": "Mon",
+    "2026-05-19": "Tue",
+    "2026-05-20": "Wed",
+    "2026-05-21": "Thu",
+    "2026-05-22": "Fri",
+    "2026-05-23": "Sat",
+    "2026-05-24": "Sun",
+    "2026-05-25": "Mon",
+    "2026-05-26": "Tue",
+    "2026-05-27": "Wed",
+    "2026-05-28": "Thu",
+    "2026-05-29": "Fri",
+    "2026-05-30": "Sat",
+    "2026-05-31": "Sun"
+  },
+  "weeks": [
+    {
+      "id": "w1",
+      "label": "Week 1 \u00b7 18-24 May",
+      "dates": [
+        "2026-05-18",
+        "2026-05-19",
+        "2026-05-20",
+        "2026-05-21",
+        "2026-05-22",
+        "2026-05-23",
+        "2026-05-24"
+      ],
+      "do_summary": {
+        "0": 785,
+        "1-20": 1436,
+        "21-30": 300,
+        "31-40": 213,
+        "41-50": 117,
+        "51-60": 106,
+        "60+": 168
+      },
+      "ar_summary": {
+        "0%": 286,
+        "1-20%": 101,
+        "21-40%": 317,
+        "41-60%": 479,
+        "61-80%": 655,
+        "81-99%": 510,
+        "100%": 357
+      }
+    },
+    {
+      "id": "w2",
+      "label": "Week 2 \u00b7 25-31 May",
+      "dates": [
+        "2026-05-25",
+        "2026-05-26",
+        "2026-05-27",
+        "2026-05-28",
+        "2026-05-29",
+        "2026-05-30",
+        "2026-05-31"
+      ],
+      "do_summary": {
+        "0": 826,
+        "1-20": 1431,
+        "21-30": 262,
+        "31-40": 195,
+        "41-50": 128,
+        "51-60": 100,
+        "60+": 197
+      },
+      "ar_summary": {
+        "0%": 349,
+        "1-20%": 87,
+        "21-40%": 341,
+        "41-60%": 466,
+        "61-80%": 594,
+        "81-99%": 592,
+        "100%": 332
+      }
+    }
+  ],
   "daily_totals": {
+    "2026-05-18": {
+      "active_couriers": 1530,
+      "couriers_with_offers": 1299,
+      "total_delivered": 6988.0,
+      "total_accepted": 7450.000004291534,
+      "total_proposed": 11715.0
+    },
+    "2026-05-19": {
+      "active_couriers": 1537,
+      "couriers_with_offers": 1307,
+      "total_delivered": 5647.0,
+      "total_accepted": 6366.000003814697,
+      "total_proposed": 11663.0
+    },
+    "2026-05-20": {
+      "active_couriers": 1582,
+      "couriers_with_offers": 1366,
+      "total_delivered": 6767.0,
+      "total_accepted": 7319.000010251999,
+      "total_proposed": 11637.0
+    },
+    "2026-05-21": {
+      "active_couriers": 1538,
+      "couriers_with_offers": 1344,
+      "total_delivered": 7381.0,
+      "total_accepted": 7963.9999985694885,
+      "total_proposed": 13358.0
+    },
+    "2026-05-22": {
+      "active_couriers": 1517,
+      "couriers_with_offers": 1344,
+      "total_delivered": 7582.0,
+      "total_accepted": 8154.000009059906,
+      "total_proposed": 15021.0
+    },
+    "2026-05-23": {
+      "active_couriers": 1496,
+      "couriers_with_offers": 1309,
+      "total_delivered": 8026.0,
+      "total_accepted": 8605.000006437302,
+      "total_proposed": 13391.0
+    },
+    "2026-05-24": {
+      "active_couriers": 1347,
+      "couriers_with_offers": 1228,
+      "total_delivered": 9158.0,
+      "total_accepted": 9709.000015258789,
+      "total_proposed": 17743.0
+    },
     "2026-05-25": {
       "active_couriers": 1441,
       "couriers_with_offers": 1236,
@@ -239,6 +386,69 @@
     "60+"
   ],
   "do_daily": {
+    "2026-05-18": {
+      "0": 404,
+      "1-5": 582,
+      "6-10": 366,
+      "11-17": 150,
+      "18-20": 11,
+      "21-25": 14,
+      "26+": 3
+    },
+    "2026-05-19": {
+      "0": 462,
+      "1-5": 673,
+      "6-10": 290,
+      "11-17": 95,
+      "18-20": 10,
+      "21-25": 7,
+      "26+": 0
+    },
+    "2026-05-20": {
+      "0": 402,
+      "1-5": 685,
+      "6-10": 351,
+      "11-17": 117,
+      "18-20": 15,
+      "21-25": 9,
+      "26+": 3
+    },
+    "2026-05-21": {
+      "0": 352,
+      "1-5": 656,
+      "6-10": 320,
+      "11-17": 173,
+      "18-20": 18,
+      "21-25": 14,
+      "26+": 5
+    },
+    "2026-05-22": {
+      "0": 362,
+      "1-5": 578,
+      "6-10": 374,
+      "11-17": 161,
+      "18-20": 24,
+      "21-25": 17,
+      "26+": 1
+    },
+    "2026-05-23": {
+      "0": 343,
+      "1-5": 596,
+      "6-10": 313,
+      "11-17": 172,
+      "18-20": 29,
+      "21-25": 34,
+      "26+": 9
+    },
+    "2026-05-24": {
+      "0": 241,
+      "1-5": 441,
+      "6-10": 359,
+      "11-17": 199,
+      "18-20": 40,
+      "21-25": 54,
+      "26+": 13
+    },
     "2026-05-25": {
       "0": 375,
       "1-5": 578,
@@ -304,6 +514,69 @@
     }
   },
   "ar_daily": {
+    "2026-05-18": {
+      "0%": 143,
+      "1-20%": 28,
+      "21-40%": 104,
+      "41-60%": 194,
+      "61-80%": 247,
+      "81-99%": 204,
+      "100%": 379
+    },
+    "2026-05-19": {
+      "0%": 173,
+      "1-20%": 56,
+      "21-40%": 134,
+      "41-60%": 230,
+      "61-80%": 238,
+      "81-99%": 162,
+      "100%": 314
+    },
+    "2026-05-20": {
+      "0%": 140,
+      "1-20%": 34,
+      "21-40%": 116,
+      "41-60%": 215,
+      "61-80%": 308,
+      "81-99%": 194,
+      "100%": 359
+    },
+    "2026-05-21": {
+      "0%": 124,
+      "1-20%": 33,
+      "21-40%": 135,
+      "41-60%": 231,
+      "61-80%": 279,
+      "81-99%": 200,
+      "100%": 342
+    },
+    "2026-05-22": {
+      "0%": 148,
+      "1-20%": 50,
+      "21-40%": 138,
+      "41-60%": 261,
+      "61-80%": 273,
+      "81-99%": 181,
+      "100%": 293
+    },
+    "2026-05-23": {
+      "0%": 116,
+      "1-20%": 23,
+      "21-40%": 129,
+      "41-60%": 217,
+      "61-80%": 254,
+      "81-99%": 239,
+      "100%": 331
+    },
+    "2026-05-24": {
+      "0%": 91,
+      "1-20%": 52,
+      "21-40%": 145,
+      "41-60%": 233,
+      "61-80%": 249,
+      "81-99%": 224,
+      "100%": 234
+    },
     "2026-05-25": {
       "0%": 135,
       "1-20%": 25,
@@ -367,24 +640,6 @@
       "81-99%": 225,
       "100%": 270
     }
-  },
-  "do_summary": {
-    "0": 826,
-    "1-20": 1431,
-    "21-30": 262,
-    "31-40": 195,
-    "41-50": 128,
-    "51-60": 100,
-    "60+": 197
-  },
-  "ar_summary": {
-    "0%": 349,
-    "1-20%": 87,
-    "21-40%": 341,
-    "41-60%": 466,
-    "61-80%": 594,
-    "81-99%": 592,
-    "100%": 332
   }
 }
 </script>
@@ -394,28 +649,26 @@ const DO_BUCKETS = DATA.do_buckets;
 const AR_BUCKETS = DATA.ar_buckets;
 const DO_SUMMARY_BUCKETS = DATA.do_summary_buckets;
 const DATES = DATA.dates;
+const WD = DATA.weekday_map;
 
 const fmt = (n) => Number(n).toLocaleString("en-US");
-const pct = (n, total) => total ? ((n / total) * 100) : 0;
+const pct = (n, total) => total ? (n / total) * 100 : 0;
 const pctStr = (n, total) => total ? ((n / total) * 100).toFixed(1) + "%" : "0.0%";
+const labelOf = (d) => `${WD[d]} · ${d.slice(5)}`;
 
-const COLORS = {
-  do: "#4f9dff",
-  ar: "#ffb54f",
-};
+const W1 = DATA.weeks[0].dates;
+const W2 = DATA.weeks[1].dates;
 
-const STACK_PALETTE = [
-  "#6b7280", "#4f9dff", "#5fc88a", "#f0c33b",
-  "#f08c33", "#e35d6a", "#a78bfa"
-];
+const PALETTE = ["#4f9dff", "#ffb54f", "#5fc88a", "#e35d6a", "#a78bfa", "#f0c33b", "#33c4d4"];
+const STACK_PALETTE = ["#6b7280", "#4f9dff", "#5fc88a", "#f0c33b", "#f08c33", "#e35d6a", "#a78bfa"];
 
-function chartDefaults() {
-  Chart.defaults.color = "#8b96a3";
-  Chart.defaults.borderColor = "#2a313c";
-  Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif';
-  Chart.defaults.font.size = 12;
-}
-chartDefaults();
+Chart.defaults.color = "#8b96a3";
+Chart.defaults.borderColor = "#2a313c";
+Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif';
+Chart.defaults.font.size = 12;
+
+let selected = new Set([DATES[0], DATES[7]]);
+let doChart, arChart;
 
 function renderKpis() {
   const el = document.getElementById("kpis");
@@ -423,95 +676,120 @@ function renderKpis() {
     const t = DATA.daily_totals[d];
     const ar = t.total_accepted / t.total_proposed * 100;
     return `
-      <div class="kpi">
-        <div class="label">${d}</div>
+      <div class="kpi" data-day="${d}">
+        <div class="label"><span class="wd">${WD[d]}</span> · ${d.slice(5)}</div>
         <div class="value">${fmt(t.active_couriers)}</div>
         <div class="meta">${fmt(Math.round(t.total_delivered))} DO · AR ${ar.toFixed(1)}%</div>
       </div>`;
   }).join("");
-}
-
-function renderDayTabs() {
-  const tabs = document.getElementById("dayTabs");
-  tabs.innerHTML = DATES.map((d, i) =>
-    `<button class="tab ${i === 0 ? "active" : ""}" data-day="${d}">${d}</button>`
-  ).join("");
-
-  const panels = document.getElementById("dayPanels");
-  panels.innerHTML = DATES.map((d, i) => `
-    <div class="day-panel ${i === 0 ? "" : "hide"}" data-day="${d}">
-      <div class="grid">
-        <div class="card">
-          <div class="card-title">
-            <h2>DO · Delivered orders per courier</h2>
-            <div class="total">Active: <b>${fmt(DATA.daily_totals[d].active_couriers)}</b></div>
-          </div>
-          <div class="chart-wrap"><canvas id="doChart-${d}"></canvas></div>
-          <table id="doTable-${d}"></table>
-        </div>
-        <div class="card">
-          <div class="card-title">
-            <h2>AR% · Acceptance rate per courier</h2>
-            <div class="total">With offers: <b>${fmt(DATA.daily_totals[d].couriers_with_offers)}</b></div>
-          </div>
-          <div class="chart-wrap"><canvas id="arChart-${d}"></canvas></div>
-          <table id="arTable-${d}"></table>
-          <div class="note">% from couriers who received at least one offer that day.</div>
-        </div>
-      </div>
-    </div>
-  `).join("");
-
-  tabs.addEventListener("click", (ev) => {
-    const btn = ev.target.closest(".tab");
-    if (!btn) return;
-    const day = btn.dataset.day;
-    document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.day === day));
-    document.querySelectorAll(".day-panel").forEach(p => p.classList.toggle("hide", p.dataset.day !== day));
+  el.addEventListener("click", (ev) => {
+    const card = ev.target.closest(".kpi");
+    if (!card) return;
+    toggle(card.dataset.day);
   });
 }
 
-function buildBucketTable(tableEl, buckets, counts, total, isAR) {
-  const max = Math.max(...buckets.map(b => counts[b] || 0));
-  let html = `<thead><tr><th>Bucket</th><th>Couriers</th><th>%</th><th></th></tr></thead><tbody>`;
+function renderWeekTabs() {
+  const el = document.getElementById("weekTabs");
+  el.innerHTML = [
+    { label: "Week 1", days: W1 },
+    { label: "Week 2", days: W2 },
+  ].map(({ label, days }) => `
+    <div class="weekrow">
+      <span class="week-label">${label}</span>
+      ${days.map(d => `
+        <button class="tab" data-day="${d}">
+          <span class="wd">${WD[d]}</span>
+          <span class="dt">${d.slice(5)}</span>
+        </button>
+      `).join("")}
+    </div>
+  `).join("");
+  el.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".tab");
+    if (!btn) return;
+    toggle(btn.dataset.day);
+  });
+}
+
+function renderQuickFilters() {
+  const el = document.getElementById("qfRow");
+  const wds = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  el.innerHTML = `
+    <button class="qf" data-action="all">All 14 days</button>
+    <button class="qf" data-action="week" data-week="0">Week 1 only</button>
+    <button class="qf" data-action="week" data-week="1">Week 2 only</button>
+    <span style="width:8px"></span>
+    ${wds.map(w => `<button class="qf primary" data-action="weekday" data-wd="${w}">Compare ${w}</button>`).join("")}
+    <span style="width:8px"></span>
+    <button class="qf" data-action="clear">Clear</button>
+  `;
+  el.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".qf");
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === "all") selected = new Set(DATES);
+    else if (action === "week") selected = new Set(DATA.weeks[+btn.dataset.week].dates);
+    else if (action === "weekday") {
+      const wd = btn.dataset.wd;
+      selected = new Set(DATES.filter(d => WD[d] === wd));
+    } else if (action === "clear") selected = new Set();
+    rerender();
+  });
+}
+
+function toggle(day) {
+  if (selected.has(day)) selected.delete(day);
+  else selected.add(day);
+  rerender();
+}
+
+function selectedSorted() {
+  return DATES.filter(d => selected.has(d));
+}
+
+function refreshSelection() {
+  document.querySelectorAll(".kpi").forEach(el => {
+    el.classList.toggle("selected", selected.has(el.dataset.day));
+  });
+  document.querySelectorAll(".tab").forEach(el => {
+    el.classList.toggle("active", selected.has(el.dataset.day));
+  });
+}
+
+function buildCompareTable(tableEl, buckets, selectedDays, dailyData, totalKey) {
+  const totals = selectedDays.map(d => DATA.daily_totals[d][totalKey]);
+  let html = `<thead><tr><th>Bucket</th>`;
+  selectedDays.forEach((d, i) => {
+    html += `<th>${WD[d]} ${d.slice(5)}<br><span style="font-weight:400;text-transform:none;">${fmt(totals[i])} cou</span></th>`;
+  });
+  html += `</tr></thead><tbody>`;
   buckets.forEach(b => {
-    const c = counts[b] || 0;
-    const p = pct(c, total);
-    const w = max > 0 ? (c / max) * 120 : 0;
-    html += `<tr>
-      <td>${b}</td>
-      <td>${fmt(c)}</td>
-      <td class="pct">${p.toFixed(1)}%</td>
-      <td><span class="bar ${isAR ? "ar" : ""}" style="width:${w}px"></span></td>
-    </tr>`;
+    html += `<tr><td>${b}</td>`;
+    selectedDays.forEach((d, i) => {
+      const c = (dailyData[d] || {})[b] || 0;
+      const p = pctStr(c, totals[i]);
+      html += `<td>${fmt(c)} <span class="pct">${p}</span></td>`;
+    });
+    html += `</tr>`;
   });
   html += `</tbody>`;
   tableEl.innerHTML = html;
 }
 
-function makeBarChart(canvasId, labels, values, total, color) {
-  const ctx = document.getElementById(canvasId);
-  return new Chart(ctx, {
+function makeGroupedChart(ctxId, labels, datasets) {
+  const canvas = document.getElementById(ctxId);
+  if (canvas._chartInstance) canvas._chartInstance.destroy();
+  const chart = new Chart(canvas, {
     type: "bar",
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        backgroundColor: color,
-        borderRadius: 6,
-        maxBarThickness: 48,
-      }],
-    },
+    data: { labels, datasets },
     options: {
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: false },
+        legend: { position: "bottom", labels: { boxWidth: 10, boxHeight: 10 } },
         tooltip: {
           callbacks: {
-            label: (c) => {
-              const v = values[c.dataIndex];
-              return `${fmt(v)} couriers · ${pctStr(v, total)}`;
-            },
+            label: (c) => `${c.dataset.label}: ${fmt(c.parsed.y)} couriers (${c.dataset._pct[c.dataIndex]})`,
           },
         },
       },
@@ -525,46 +803,138 @@ function makeBarChart(canvasId, labels, values, total, color) {
       },
     },
   });
+  canvas._chartInstance = chart;
+  return chart;
 }
 
-function renderDayCharts() {
-  DATES.forEach((d) => {
-    const totals = DATA.daily_totals[d];
-    const doTotal = totals.active_couriers;
-    const arTotal = totals.couriers_with_offers;
+function renderCompare() {
+  const sel = selectedSorted();
+  const titleEl = document.getElementById("compareSectionTitle");
+  titleEl.textContent = sel.length === 0
+    ? "Select at least one day above"
+    : sel.length === 1
+      ? `Daily distribution · ${WD[sel[0]]} ${sel[0]}`
+      : `Compare ${sel.length} days`;
 
-    const doCounts = DATA.do_daily[d];
-    const doVals = DO_BUCKETS.map(b => doCounts[b] || 0);
-    makeBarChart(`doChart-${d}`, DO_BUCKETS, doVals, doTotal, COLORS.do);
-    buildBucketTable(document.getElementById(`doTable-${d}`), DO_BUCKETS, doCounts, doTotal, false);
+  document.getElementById("doCompareTotal").innerHTML =
+    sel.map(d => `${WD[d]} ${d.slice(5)}: <b>${fmt(DATA.daily_totals[d].active_couriers)}</b>`).join(" · ");
+  document.getElementById("arCompareTotal").innerHTML =
+    sel.map(d => `${WD[d]} ${d.slice(5)}: <b>${fmt(DATA.daily_totals[d].couriers_with_offers)}</b>`).join(" · ");
 
-    const arCounts = DATA.ar_daily[d];
-    const arVals = AR_BUCKETS.map(b => arCounts[b] || 0);
-    makeBarChart(`arChart-${d}`, AR_BUCKETS, arVals, arTotal, COLORS.ar);
-    buildBucketTable(document.getElementById(`arTable-${d}`), AR_BUCKETS, arCounts, arTotal, true);
+  if (sel.length === 0) {
+    ["doCompareChart", "arCompareChart"].forEach(id => {
+      const c = document.getElementById(id);
+      if (c._chartInstance) { c._chartInstance.destroy(); c._chartInstance = null; }
+    });
+    document.getElementById("doCompareTable").innerHTML = "";
+    document.getElementById("arCompareTable").innerHTML = "";
+    return;
+  }
+
+  // DO chart
+  const doDatasets = sel.map((d, i) => {
+    const total = DATA.daily_totals[d].active_couriers;
+    const data = DO_BUCKETS.map(b => (DATA.do_daily[d] || {})[b] || 0);
+    return {
+      label: `${WD[d]} ${d.slice(5)}`,
+      data,
+      backgroundColor: PALETTE[i % PALETTE.length],
+      borderRadius: 4,
+      maxBarThickness: 28,
+      _pct: data.map(v => pctStr(v, total)),
+    };
+  });
+  makeGroupedChart("doCompareChart", DO_BUCKETS, doDatasets);
+  buildCompareTable(document.getElementById("doCompareTable"), DO_BUCKETS, sel, DATA.do_daily, "active_couriers");
+
+  // AR chart
+  const arDatasets = sel.map((d, i) => {
+    const total = DATA.daily_totals[d].couriers_with_offers;
+    const data = AR_BUCKETS.map(b => (DATA.ar_daily[d] || {})[b] || 0);
+    return {
+      label: `${WD[d]} ${d.slice(5)}`,
+      data,
+      backgroundColor: PALETTE[i % PALETTE.length],
+      borderRadius: 4,
+      maxBarThickness: 28,
+      _pct: data.map(v => pctStr(v, total)),
+    };
+  });
+  makeGroupedChart("arCompareChart", AR_BUCKETS, arDatasets);
+  buildCompareTable(document.getElementById("arCompareTable"), AR_BUCKETS, sel, DATA.ar_daily, "couriers_with_offers");
+}
+
+function buildSummaryTable(tableEl, buckets, counts, total, accent) {
+  const max = Math.max(...buckets.map(b => counts[b] || 0));
+  let html = `<thead><tr><th>Bucket</th><th>Couriers</th><th>%</th><th></th></tr></thead><tbody>`;
+  buckets.forEach(b => {
+    const c = counts[b] || 0;
+    const p = pct(c, total);
+    const w = max > 0 ? (c / max) * 120 : 0;
+    html += `<tr>
+      <td>${b}</td>
+      <td>${fmt(c)}</td>
+      <td class="pct">${p.toFixed(1)}%</td>
+      <td><span style="display:inline-block;height:6px;border-radius:3px;background:${accent};width:${w}px;min-width:1px;"></span></td>
+    </tr>`;
+  });
+  html += `</tbody>`;
+  tableEl.innerHTML = html;
+}
+
+function renderWeeks() {
+  const el = document.getElementById("weeksGrid");
+  el.innerHTML = DATA.weeks.map(w => `
+    <div class="card">
+      <div class="card-title">
+        <h2>${w.label}</h2>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <div style="color:var(--muted);font-size:12px;margin-bottom:6px">DO total per courier</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="doSum-${w.id}"></canvas></div>
+          <table id="doSumT-${w.id}"></table>
+        </div>
+        <div>
+          <div style="color:var(--muted);font-size:12px;margin-bottom:6px">AR% over the week</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="arSum-${w.id}"></canvas></div>
+          <table id="arSumT-${w.id}"></table>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  DATA.weeks.forEach(w => {
+    const doTotal = DO_SUMMARY_BUCKETS.reduce((s, b) => s + (w.do_summary[b] || 0), 0);
+    const arTotal = AR_BUCKETS.reduce((s, b) => s + (w.ar_summary[b] || 0), 0);
+    const doData = DO_SUMMARY_BUCKETS.map(b => w.do_summary[b] || 0);
+    const arData = AR_BUCKETS.map(b => w.ar_summary[b] || 0);
+
+    new Chart(document.getElementById(`doSum-${w.id}`), {
+      type: "bar",
+      data: { labels: DO_SUMMARY_BUCKETS, datasets: [{ data: doData, backgroundColor: "#4f9dff", borderRadius: 4, maxBarThickness: 32 }] },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${fmt(doData[c.dataIndex])} (${pctStr(doData[c.dataIndex], doTotal)})` } } },
+        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: "rgba(255,255,255,0.05)" } } },
+      },
+    });
+    new Chart(document.getElementById(`arSum-${w.id}`), {
+      type: "bar",
+      data: { labels: AR_BUCKETS, datasets: [{ data: arData, backgroundColor: "#ffb54f", borderRadius: 4, maxBarThickness: 32 }] },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${fmt(arData[c.dataIndex])} (${pctStr(arData[c.dataIndex], arTotal)})` } } },
+        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: "rgba(255,255,255,0.05)" } } },
+      },
+    });
+
+    buildSummaryTable(document.getElementById(`doSumT-${w.id}`), DO_SUMMARY_BUCKETS, w.do_summary, doTotal, "#4f9dff");
+    buildSummaryTable(document.getElementById(`arSumT-${w.id}`), AR_BUCKETS, w.ar_summary, arTotal, "#ffb54f");
   });
 }
 
-function renderSummary() {
-  const doTotal = DO_SUMMARY_BUCKETS.reduce((s, b) => s + (DATA.do_summary[b] || 0), 0);
-  const arTotal = AR_BUCKETS.reduce((s, b) => s + (DATA.ar_summary[b] || 0), 0);
-
-  document.getElementById("doSummaryTotal").innerHTML =
-    `Total active couriers: <b>${fmt(doTotal)}</b>`;
-  document.getElementById("arSummaryTotal").innerHTML =
-    `Couriers with offers: <b>${fmt(arTotal)}</b>`;
-
-  const doVals = DO_SUMMARY_BUCKETS.map(b => DATA.do_summary[b] || 0);
-  const arVals = AR_BUCKETS.map(b => DATA.ar_summary[b] || 0);
-
-  makeBarChart("doSummaryChart", DO_SUMMARY_BUCKETS, doVals, doTotal, COLORS.do);
-  makeBarChart("arSummaryChart", AR_BUCKETS, arVals, arTotal, COLORS.ar);
-
-  buildBucketTable(document.getElementById("doSummaryTable"), DO_SUMMARY_BUCKETS, DATA.do_summary, doTotal, false);
-  buildBucketTable(document.getElementById("arSummaryTable"), AR_BUCKETS, DATA.ar_summary, arTotal, true);
-}
-
-function renderStackedShare(canvasId, dailyData, buckets, totalKey) {
+function renderStacked(canvasId, dailyData, buckets, totalKey) {
   const datasets = buckets.map((b, i) => ({
     label: b,
     backgroundColor: STACK_PALETTE[i % STACK_PALETTE.length],
@@ -573,21 +943,17 @@ function renderStackedShare(canvasId, dailyData, buckets, totalKey) {
       return pct(dailyData[d][b] || 0, total);
     }),
   }));
-  return new Chart(document.getElementById(canvasId), {
+  new Chart(document.getElementById(canvasId), {
     type: "bar",
-    data: { labels: DATES, datasets },
+    data: { labels: DATES.map(labelOf), datasets },
     options: {
       maintainAspectRatio: false,
       plugins: {
         legend: { position: "bottom", labels: { boxWidth: 10, boxHeight: 10 } },
-        tooltip: {
-          callbacks: {
-            label: (c) => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`,
-          },
-        },
+        tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}%` } },
       },
       scales: {
-        x: { stacked: true, grid: { display: false } },
+        x: { stacked: true, grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45 } },
         y: {
           stacked: true, beginAtZero: true, max: 100,
           grid: { color: "rgba(255,255,255,0.05)" },
@@ -598,12 +964,18 @@ function renderStackedShare(canvasId, dailyData, buckets, totalKey) {
   });
 }
 
+function rerender() {
+  refreshSelection();
+  renderCompare();
+}
+
 renderKpis();
-renderDayTabs();
-renderDayCharts();
-renderSummary();
-renderStackedShare("doStackedChart", DATA.do_daily, DO_BUCKETS, "active_couriers");
-renderStackedShare("arStackedChart", DATA.ar_daily, AR_BUCKETS, "couriers_with_offers");
+renderWeekTabs();
+renderQuickFilters();
+renderWeeks();
+renderStacked("doStackedChart", DATA.do_daily, DO_BUCKETS, "active_couriers");
+renderStacked("arStackedChart", DATA.ar_daily, AR_BUCKETS, "couriers_with_offers");
+rerender();
 </script>
 </body>
 </html>
