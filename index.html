@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8" />
-<title>Kyiv · Courier DO & AR distribution · 18-31 May 2026</title>
+<title>Kyiv · Courier DO & AR distribution · 10-31 May 2026</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
@@ -14,8 +14,6 @@
     --muted: #8b96a3;
     --accent: #4f9dff;
     --accent-2: #ffb54f;
-    --good: #3fb950;
-    --bad: #f85149;
   }
   * { box-sizing: border-box; }
   html, body { background: var(--bg); color: var(--text); margin: 0; }
@@ -54,7 +52,7 @@
   .weekrow { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; align-items: center; }
   .weekrow .week-label {
     color: var(--muted); font-size: 11px; text-transform: uppercase;
-    letter-spacing: 0.06em; margin-right: 4px; min-width: 56px;
+    letter-spacing: 0.06em; margin-right: 4px; min-width: 64px;
   }
   .tab, .qf {
     background: var(--panel); border: 1px solid var(--line);
@@ -69,7 +67,8 @@
   .tab.active .dt { opacity: 0.85; }
   .qf.primary { background: var(--accent); border-color: var(--accent); color: #0b1117; }
 
-  .qf-row { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .qf-row { display: flex; gap: 6px; margin: 12px 0 16px; flex-wrap: wrap; align-items: center; }
+  .qf-sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
 
   .grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
@@ -100,18 +99,14 @@
   .table-wrap { overflow-x: auto; margin-top: 8px; }
 
   .note { font-size: 12px; color: var(--muted); margin-top: 6px; }
-  .empty { color: var(--muted); padding: 32px; text-align: center; font-size: 13px; }
+  .week-block { margin-bottom: 16px; }
 </style>
 </head>
 <body>
   <h1>Kyiv · DO & AR% distribution per courier</h1>
-  <div class="sub">
-    City: Kyiv · Period: 18 - 31 May 2026 (2 weeks) ·
-    Active courier = courier with online hours &gt; 0 that day ·
-    Click days to compare side-by-side
-  </div>
+  <div class="sub" id="subline"></div>
 
-  <div class="section-title">Daily totals · click to toggle</div>
+  <div class="section-title">Daily totals · click any card to toggle</div>
   <div class="kpis" id="kpis"></div>
 
   <div class="section-title">Day selector</div>
@@ -139,18 +134,18 @@
     </div>
   </div>
 
-  <div class="section-title">Weekly summary · per courier total over the week</div>
-  <div class="grid" id="weeksGrid"></div>
+  <div class="section-title">Weekly summary · per courier total within the week</div>
+  <div id="weeksGrid"></div>
 
-  <div class="section-title">All 14 days · stacked share</div>
+  <div class="section-title">All days · stacked share</div>
   <div class="grid">
     <div class="card">
       <div class="card-title"><h2>DO bucket share by day</h2></div>
-      <div class="chart-wrap" style="height:300px"><canvas id="doStackedChart"></canvas></div>
+      <div class="chart-wrap" style="height:320px"><canvas id="doStackedChart"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title"><h2>AR% bucket share by day</h2></div>
-      <div class="chart-wrap" style="height:300px"><canvas id="arStackedChart"></canvas></div>
+      <div class="chart-wrap" style="height:320px"><canvas id="arStackedChart"></canvas></div>
     </div>
   </div>
 
@@ -159,10 +154,17 @@
   "city": "Kyiv",
   "city_id": 158,
   "date_range": {
-    "start": "2026-05-18",
+    "start": "2026-05-10",
     "end": "2026-05-31"
   },
   "dates": [
+    "2026-05-10",
+    "2026-05-11",
+    "2026-05-12",
+    "2026-05-13",
+    "2026-05-14",
+    "2026-05-15",
+    "2026-05-16",
     "2026-05-18",
     "2026-05-19",
     "2026-05-20",
@@ -179,6 +181,13 @@
     "2026-05-31"
   ],
   "weekday_map": {
+    "2026-05-10": "Sun",
+    "2026-05-11": "Mon",
+    "2026-05-12": "Tue",
+    "2026-05-13": "Wed",
+    "2026-05-14": "Thu",
+    "2026-05-15": "Fri",
+    "2026-05-16": "Sat",
     "2026-05-18": "Mon",
     "2026-05-19": "Tue",
     "2026-05-20": "Wed",
@@ -197,7 +206,38 @@
   "weeks": [
     {
       "id": "w1",
-      "label": "Week 1 \u00b7 18-24 May",
+      "label": "Week 1 \u00b7 10-16 May",
+      "dates": [
+        "2026-05-10",
+        "2026-05-11",
+        "2026-05-12",
+        "2026-05-13",
+        "2026-05-14",
+        "2026-05-15",
+        "2026-05-16"
+      ],
+      "do_summary": {
+        "0": 905,
+        "1-20": 1521,
+        "21-30": 320,
+        "31-40": 214,
+        "41-50": 159,
+        "51-60": 98,
+        "60+": 158
+      },
+      "ar_summary": {
+        "0%": 342,
+        "1-20%": 109,
+        "21-40%": 349,
+        "41-60%": 509,
+        "61-80%": 697,
+        "81-99%": 531,
+        "100%": 368
+      }
+    },
+    {
+      "id": "w2",
+      "label": "Week 2 \u00b7 18-24 May",
       "dates": [
         "2026-05-18",
         "2026-05-19",
@@ -227,8 +267,8 @@
       }
     },
     {
-      "id": "w2",
-      "label": "Week 2 \u00b7 25-31 May",
+      "id": "w3",
+      "label": "Week 3 \u00b7 25-31 May",
       "dates": [
         "2026-05-25",
         "2026-05-26",
@@ -356,6 +396,55 @@
       "total_delivered": 9060.0,
       "total_accepted": 9523.332999999999,
       "total_proposed": 15023.0
+    },
+    "2026-05-10": {
+      "active_couriers": 1465,
+      "couriers_with_offers": 1319,
+      "total_delivered": 8822.0,
+      "total_accepted": 9432.16,
+      "total_proposed": 16192.0
+    },
+    "2026-05-11": {
+      "active_couriers": 1496,
+      "couriers_with_offers": 1231,
+      "total_delivered": 6094.0,
+      "total_accepted": 6573.924,
+      "total_proposed": 10063.0
+    },
+    "2026-05-12": {
+      "active_couriers": 1666,
+      "couriers_with_offers": 1360,
+      "total_delivered": 6892.0,
+      "total_accepted": 7380.108,
+      "total_proposed": 11610.0
+    },
+    "2026-05-13": {
+      "active_couriers": 1627,
+      "couriers_with_offers": 1415,
+      "total_delivered": 7258.0,
+      "total_accepted": 8107.972999999999,
+      "total_proposed": 14663.0
+    },
+    "2026-05-14": {
+      "active_couriers": 1602,
+      "couriers_with_offers": 1408,
+      "total_delivered": 8565.0,
+      "total_accepted": 9134.904999999999,
+      "total_proposed": 14943.0
+    },
+    "2026-05-15": {
+      "active_couriers": 1646,
+      "couriers_with_offers": 1456,
+      "total_delivered": 7551.0,
+      "total_accepted": 8414.107,
+      "total_proposed": 14630.0
+    },
+    "2026-05-16": {
+      "active_couriers": 1554,
+      "couriers_with_offers": 1389,
+      "total_delivered": 8080.0,
+      "total_accepted": 8741.212,
+      "total_proposed": 14629.0
     }
   },
   "do_buckets": [
@@ -511,6 +600,69 @@
       "18-20": 57,
       "21-25": 58,
       "26+": 22
+    },
+    "2026-05-10": {
+      "0": 353,
+      "1-5": 454,
+      "6-10": 366,
+      "11-17": 208,
+      "18-20": 42,
+      "21-25": 25,
+      "26+": 17
+    },
+    "2026-05-11": {
+      "0": 449,
+      "1-5": 614,
+      "6-10": 267,
+      "11-17": 141,
+      "18-20": 14,
+      "21-25": 11,
+      "26+": 0
+    },
+    "2026-05-12": {
+      "0": 494,
+      "1-5": 666,
+      "6-10": 345,
+      "11-17": 132,
+      "18-20": 18,
+      "21-25": 11,
+      "26+": 0
+    },
+    "2026-05-13": {
+      "0": 503,
+      "1-5": 611,
+      "6-10": 320,
+      "11-17": 125,
+      "18-20": 42,
+      "21-25": 23,
+      "26+": 3
+    },
+    "2026-05-14": {
+      "0": 347,
+      "1-5": 620,
+      "6-10": 387,
+      "11-17": 199,
+      "18-20": 17,
+      "21-25": 25,
+      "26+": 7
+    },
+    "2026-05-15": {
+      "0": 397,
+      "1-5": 669,
+      "6-10": 397,
+      "11-17": 141,
+      "18-20": 32,
+      "21-25": 8,
+      "26+": 2
+    },
+    "2026-05-16": {
+      "0": 351,
+      "1-5": 585,
+      "6-10": 383,
+      "11-17": 185,
+      "18-20": 20,
+      "21-25": 24,
+      "26+": 6
     }
   },
   "ar_daily": {
@@ -639,6 +791,69 @@
       "61-80%": 235,
       "81-99%": 225,
       "100%": 270
+    },
+    "2026-05-10": {
+      "0%": 159,
+      "1-20%": 48,
+      "21-40%": 158,
+      "41-60%": 218,
+      "61-80%": 291,
+      "81-99%": 189,
+      "100%": 256
+    },
+    "2026-05-11": {
+      "0%": 146,
+      "1-20%": 28,
+      "21-40%": 111,
+      "41-60%": 181,
+      "61-80%": 257,
+      "81-99%": 132,
+      "100%": 376
+    },
+    "2026-05-12": {
+      "0%": 151,
+      "1-20%": 33,
+      "21-40%": 124,
+      "41-60%": 226,
+      "61-80%": 280,
+      "81-99%": 178,
+      "100%": 368
+    },
+    "2026-05-13": {
+      "0%": 212,
+      "1-20%": 69,
+      "21-40%": 171,
+      "41-60%": 238,
+      "61-80%": 263,
+      "81-99%": 175,
+      "100%": 287
+    },
+    "2026-05-14": {
+      "0%": 118,
+      "1-20%": 42,
+      "21-40%": 148,
+      "41-60%": 252,
+      "61-80%": 307,
+      "81-99%": 194,
+      "100%": 347
+    },
+    "2026-05-15": {
+      "0%": 145,
+      "1-20%": 63,
+      "21-40%": 167,
+      "41-60%": 267,
+      "61-80%": 309,
+      "81-99%": 155,
+      "100%": 350
+    },
+    "2026-05-16": {
+      "0%": 133,
+      "1-20%": 50,
+      "21-40%": 166,
+      "41-60%": 238,
+      "61-80%": 308,
+      "81-99%": 162,
+      "100%": 332
     }
   }
 }
@@ -650,14 +865,11 @@ const AR_BUCKETS = DATA.ar_buckets;
 const DO_SUMMARY_BUCKETS = DATA.do_summary_buckets;
 const DATES = DATA.dates;
 const WD = DATA.weekday_map;
+const WEEKS = DATA.weeks;
 
 const fmt = (n) => Number(n).toLocaleString("en-US");
 const pct = (n, total) => total ? (n / total) * 100 : 0;
 const pctStr = (n, total) => total ? ((n / total) * 100).toFixed(1) + "%" : "0.0%";
-const labelOf = (d) => `${WD[d]} · ${d.slice(5)}`;
-
-const W1 = DATA.weeks[0].dates;
-const W2 = DATA.weeks[1].dates;
 
 const PALETTE = ["#4f9dff", "#ffb54f", "#5fc88a", "#e35d6a", "#a78bfa", "#f0c33b", "#33c4d4"];
 const STACK_PALETTE = ["#6b7280", "#4f9dff", "#5fc88a", "#f0c33b", "#f08c33", "#e35d6a", "#a78bfa"];
@@ -667,8 +879,14 @@ Chart.defaults.borderColor = "#2a313c";
 Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif';
 Chart.defaults.font.size = 12;
 
-let selected = new Set([DATES[0], DATES[7]]);
-let doChart, arChart;
+let selected = new Set();
+
+function renderSubline() {
+  const range = `${DATA.date_range.start.slice(5)} – ${DATA.date_range.end.slice(5)} May 2026`;
+  document.getElementById("subline").textContent =
+    `City: Kyiv · ${WEEKS.length} weeks · ${DATES.length} days (${range}) · ` +
+    `Active courier = courier with online hours > 0 that day · Click days to compare`;
+}
 
 function renderKpis() {
   const el = document.getElementById("kpis");
@@ -691,13 +909,10 @@ function renderKpis() {
 
 function renderWeekTabs() {
   const el = document.getElementById("weekTabs");
-  el.innerHTML = [
-    { label: "Week 1", days: W1 },
-    { label: "Week 2", days: W2 },
-  ].map(({ label, days }) => `
+  el.innerHTML = WEEKS.map((w) => `
     <div class="weekrow">
-      <span class="week-label">${label}</span>
-      ${days.map(d => `
+      <span class="week-label">${w.label.split("·")[0].trim()}</span>
+      ${w.dates.map(d => `
         <button class="tab" data-day="${d}">
           <span class="wd">${WD[d]}</span>
           <span class="dt">${d.slice(5)}</span>
@@ -715,13 +930,15 @@ function renderWeekTabs() {
 function renderQuickFilters() {
   const el = document.getElementById("qfRow");
   const wds = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const weekButtons = WEEKS.map((w, i) =>
+    `<button class="qf" data-action="week" data-week="${i}">${w.label.split("·")[0].trim()} only</button>`
+  ).join("");
   el.innerHTML = `
-    <button class="qf" data-action="all">All 14 days</button>
-    <button class="qf" data-action="week" data-week="0">Week 1 only</button>
-    <button class="qf" data-action="week" data-week="1">Week 2 only</button>
-    <span style="width:8px"></span>
+    <button class="qf" data-action="all">All days</button>
+    ${weekButtons}
+    <span class="qf-sep"></span>
     ${wds.map(w => `<button class="qf primary" data-action="weekday" data-wd="${w}">Compare ${w}</button>`).join("")}
-    <span style="width:8px"></span>
+    <span class="qf-sep"></span>
     <button class="qf" data-action="clear">Clear</button>
   `;
   el.addEventListener("click", (ev) => {
@@ -729,7 +946,7 @@ function renderQuickFilters() {
     if (!btn) return;
     const action = btn.dataset.action;
     if (action === "all") selected = new Set(DATES);
-    else if (action === "week") selected = new Set(DATA.weeks[+btn.dataset.week].dates);
+    else if (action === "week") selected = new Set(WEEKS[+btn.dataset.week].dates);
     else if (action === "weekday") {
       const wd = btn.dataset.wd;
       selected = new Set(DATES.filter(d => WD[d] === wd));
@@ -807,6 +1024,13 @@ function makeGroupedChart(ctxId, labels, datasets) {
   return chart;
 }
 
+function weekIndexOf(date) {
+  for (let i = 0; i < WEEKS.length; i++) {
+    if (WEEKS[i].dates.includes(date)) return i;
+  }
+  return 0;
+}
+
 function renderCompare() {
   const sel = selectedSorted();
   const titleEl = document.getElementById("compareSectionTitle");
@@ -831,14 +1055,13 @@ function renderCompare() {
     return;
   }
 
-  // DO chart
-  const doDatasets = sel.map((d, i) => {
+  const doDatasets = sel.map((d) => {
     const total = DATA.daily_totals[d].active_couriers;
     const data = DO_BUCKETS.map(b => (DATA.do_daily[d] || {})[b] || 0);
     return {
       label: `${WD[d]} ${d.slice(5)}`,
       data,
-      backgroundColor: PALETTE[i % PALETTE.length],
+      backgroundColor: PALETTE[weekIndexOf(d) % PALETTE.length],
       borderRadius: 4,
       maxBarThickness: 28,
       _pct: data.map(v => pctStr(v, total)),
@@ -847,14 +1070,13 @@ function renderCompare() {
   makeGroupedChart("doCompareChart", DO_BUCKETS, doDatasets);
   buildCompareTable(document.getElementById("doCompareTable"), DO_BUCKETS, sel, DATA.do_daily, "active_couriers");
 
-  // AR chart
-  const arDatasets = sel.map((d, i) => {
+  const arDatasets = sel.map((d) => {
     const total = DATA.daily_totals[d].couriers_with_offers;
     const data = AR_BUCKETS.map(b => (DATA.ar_daily[d] || {})[b] || 0);
     return {
       label: `${WD[d]} ${d.slice(5)}`,
       data,
-      backgroundColor: PALETTE[i % PALETTE.length],
+      backgroundColor: PALETTE[weekIndexOf(d) % PALETTE.length],
       borderRadius: 4,
       maxBarThickness: 28,
       _pct: data.map(v => pctStr(v, total)),
@@ -884,12 +1106,13 @@ function buildSummaryTable(tableEl, buckets, counts, total, accent) {
 
 function renderWeeks() {
   const el = document.getElementById("weeksGrid");
-  el.innerHTML = DATA.weeks.map(w => `
-    <div class="card">
+  el.innerHTML = WEEKS.map(w => `
+    <div class="card week-block">
       <div class="card-title">
         <h2>${w.label}</h2>
+        <div class="total">${w.dates[0]} → ${w.dates[w.dates.length - 1]}</div>
       </div>
-      <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px">
         <div>
           <div style="color:var(--muted);font-size:12px;margin-bottom:6px">DO total per courier</div>
           <div class="chart-wrap" style="height:200px"><canvas id="doSum-${w.id}"></canvas></div>
@@ -904,7 +1127,7 @@ function renderWeeks() {
     </div>
   `).join("");
 
-  DATA.weeks.forEach(w => {
+  WEEKS.forEach(w => {
     const doTotal = DO_SUMMARY_BUCKETS.reduce((s, b) => s + (w.do_summary[b] || 0), 0);
     const arTotal = AR_BUCKETS.reduce((s, b) => s + (w.ar_summary[b] || 0), 0);
     const doData = DO_SUMMARY_BUCKETS.map(b => w.do_summary[b] || 0);
@@ -943,9 +1166,10 @@ function renderStacked(canvasId, dailyData, buckets, totalKey) {
       return pct(dailyData[d][b] || 0, total);
     }),
   }));
+  const labels = DATES.map(d => `${WD[d]} ${d.slice(5)}`);
   new Chart(document.getElementById(canvasId), {
     type: "bar",
-    data: { labels: DATES.map(labelOf), datasets },
+    data: { labels, datasets },
     options: {
       maintainAspectRatio: false,
       plugins: {
@@ -953,7 +1177,7 @@ function renderStacked(canvasId, dailyData, buckets, totalKey) {
         tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}%` } },
       },
       scales: {
-        x: { stacked: true, grid: { display: false }, ticks: { maxRotation: 45, minRotation: 45 } },
+        x: { stacked: true, grid: { display: false }, ticks: { maxRotation: 60, minRotation: 60, autoSkip: false } },
         y: {
           stacked: true, beginAtZero: true, max: 100,
           grid: { color: "rgba(255,255,255,0.05)" },
@@ -969,6 +1193,9 @@ function rerender() {
   renderCompare();
 }
 
+selected = new Set(DATES.filter(d => WD[d] === "Tue"));
+
+renderSubline();
 renderKpis();
 renderWeekTabs();
 renderQuickFilters();
