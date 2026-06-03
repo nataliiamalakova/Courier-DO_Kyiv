@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8" />
-<title>Kyiv · Courier DO & AR distribution · 10-31 May 2026</title>
+<title>Courier DO · Kyiv & Zaporizhia</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
   :root {
@@ -25,11 +25,23 @@
   }
   h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
   h2 { font-size: 16px; margin: 0 0 12px; letter-spacing: -0.01em; }
-  .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
   .section-title {
     font-size: 12px; color: var(--muted); text-transform: uppercase;
     letter-spacing: 0.08em; margin: 28px 0 10px;
   }
+
+  .city-tabs {
+    display: inline-flex; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 4px; margin-bottom: 24px; gap: 2px;
+  }
+  .city-tab {
+    background: transparent; border: 0; color: var(--text);
+    padding: 8px 18px; border-radius: 7px; cursor: pointer;
+    font-size: 14px; font-weight: 500; transition: all 0.15s;
+  }
+  .city-tab:hover { background: var(--panel-2); }
+  .city-tab.active { background: var(--accent); color: #0b1117; }
 
   .kpis {
     display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;
@@ -54,14 +66,15 @@
     color: var(--muted); font-size: 11px; text-transform: uppercase;
     letter-spacing: 0.06em; margin-right: 4px; min-width: 64px;
   }
-  .tab, .qf {
+  .tab, .qf, .week-tab {
     background: var(--panel); border: 1px solid var(--line);
     color: var(--text); padding: 7px 12px; border-radius: 8px;
     cursor: pointer; font-size: 12px; font-weight: 500;
     transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;
   }
-  .tab:hover, .qf:hover { background: var(--panel-2); border-color: #3a414c; }
+  .tab:hover, .qf:hover, .week-tab:hover { background: var(--panel-2); border-color: #3a414c; }
   .tab.active { background: var(--accent); border-color: var(--accent); color: #0b1117; }
+  .week-tab.active { background: var(--accent-2); border-color: var(--accent-2); color: #0b1117; }
   .tab .wd { font-weight: 600; }
   .tab .dt { opacity: 0.7; font-size: 11px; }
   .tab.active .dt { opacity: 0.85; }
@@ -79,7 +92,7 @@
     background: var(--panel); border: 1px solid var(--line);
     border-radius: 12px; padding: 16px 18px;
   }
-  .card-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
+  .card-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; flex-wrap: wrap; }
   .card-title .total { color: var(--muted); font-size: 12px; }
   .chart-wrap { position: relative; height: 280px; }
 
@@ -98,355 +111,86 @@
   td.pct { color: var(--muted); }
   .table-wrap { overflow-x: auto; margin-top: 8px; }
 
-  .note { font-size: 12px; color: var(--muted); margin-top: 6px; }
-  .week-block { margin-bottom: 16px; }
+  .week-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
+  }
+  @media (max-width: 1300px) { .week-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 900px) { .week-grid { grid-template-columns: repeat(2, 1fr); } }
+  .week-card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .week-card:hover { border-color: #3a414c; }
+  .week-card.selected { border-color: var(--accent-2); box-shadow: 0 0 0 1px var(--accent-2) inset; }
+  .week-card .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .week-card .label .num { color: var(--accent-2); font-weight: 600; }
+  .week-card .value { font-size: 18px; font-weight: 600; margin-top: 2px; }
+  .week-card .meta { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+  .empty { color: var(--muted); padding: 32px; text-align: center; font-size: 13px; }
 </style>
 </head>
 <body>
-  <h1>Kyiv · DO & AR% distribution per courier</h1>
+  <h1>Courier DO distribution</h1>
   <div class="sub" id="subline"></div>
 
-  <div class="section-title">Daily totals · click any card to toggle</div>
-  <div class="kpis" id="kpis"></div>
+  <div class="city-tabs" id="cityTabs"></div>
 
-  <div class="section-title">Day selector</div>
-  <div id="weekTabs"></div>
-  <div class="qf-row" id="qfRow"></div>
+  <div id="cityContent"></div>
 
-  <div class="section-title" id="compareSectionTitle">Compare selected days</div>
-  <div class="grid">
+<template id="cityTemplate">
+  <div class="city-view">
+    <div class="section-title">Weekly totals · click any week card to select for compare</div>
+    <div class="week-grid wgs"></div>
+    <div class="qf-row wqf"></div>
+
+    <div class="section-title weekly-section-title">Weekly comparison</div>
+    <div class="grid">
+      <div class="card">
+        <div class="card-title">
+          <h2>Weekly DO totals</h2>
+          <div class="total weekly-totals-meta"></div>
+        </div>
+        <div class="chart-wrap"><canvas class="weeklyTotalsChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">
+          <h2>Per-courier DO buckets · weeks side-by-side</h2>
+          <div class="total weekly-bucket-meta"></div>
+        </div>
+        <div class="chart-wrap"><canvas class="weeklyBucketsChart"></canvas></div>
+        <div class="table-wrap"><table class="weeklyBucketsTable"></table></div>
+      </div>
+    </div>
+
+    <div class="section-title">Daily totals · click any card to toggle</div>
+    <div class="kpis kpis-grid"></div>
+
+    <div class="section-title">Day selector</div>
+    <div class="weekTabs"></div>
+    <div class="qf-row dqf"></div>
+
+    <div class="section-title compare-title">Compare selected days</div>
     <div class="card">
       <div class="card-title">
         <h2>DO · Delivered orders per courier</h2>
-        <div class="total" id="doCompareTotal"></div>
+        <div class="total compare-meta"></div>
       </div>
-      <div class="chart-wrap"><canvas id="doCompareChart"></canvas></div>
-      <div class="table-wrap"><table id="doCompareTable"></table></div>
+      <div class="chart-wrap"><canvas class="dailyCompareChart"></canvas></div>
+      <div class="table-wrap"><table class="dailyCompareTable"></table></div>
     </div>
-    <div class="card">
-      <div class="card-title">
-        <h2>AR% · Acceptance rate per courier</h2>
-        <div class="total" id="arCompareTotal"></div>
-      </div>
-      <div class="chart-wrap"><canvas id="arCompareChart"></canvas></div>
-      <div class="table-wrap"><table id="arCompareTable"></table></div>
-      <div class="note">% computed only for couriers who received at least one offer that day.</div>
-    </div>
-  </div>
 
-  <div class="section-title">Weekly summary · per courier total within the week</div>
-  <div id="weeksGrid"></div>
-
-  <div class="section-title">All days · stacked share</div>
-  <div class="grid">
+    <div class="section-title">All days · stacked share of DO buckets</div>
     <div class="card">
       <div class="card-title"><h2>DO bucket share by day</h2></div>
-      <div class="chart-wrap" style="height:320px"><canvas id="doStackedChart"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title"><h2>AR% bucket share by day</h2></div>
-      <div class="chart-wrap" style="height:320px"><canvas id="arStackedChart"></canvas></div>
+      <div class="chart-wrap" style="height:340px"><canvas class="stackedChart"></canvas></div>
     </div>
   </div>
+</template>
 
 <script id="report-data" type="application/json">
 {
-  "city": "Kyiv",
-  "city_id": 158,
-  "date_range": {
-    "start": "2026-05-10",
-    "end": "2026-05-31"
-  },
-  "dates": [
-    "2026-05-10",
-    "2026-05-11",
-    "2026-05-12",
-    "2026-05-13",
-    "2026-05-14",
-    "2026-05-15",
-    "2026-05-16",
-    "2026-05-18",
-    "2026-05-19",
-    "2026-05-20",
-    "2026-05-21",
-    "2026-05-22",
-    "2026-05-23",
-    "2026-05-24",
-    "2026-05-25",
-    "2026-05-26",
-    "2026-05-27",
-    "2026-05-28",
-    "2026-05-29",
-    "2026-05-30",
-    "2026-05-31"
-  ],
-  "weekday_map": {
-    "2026-05-10": "Sun",
-    "2026-05-11": "Mon",
-    "2026-05-12": "Tue",
-    "2026-05-13": "Wed",
-    "2026-05-14": "Thu",
-    "2026-05-15": "Fri",
-    "2026-05-16": "Sat",
-    "2026-05-18": "Mon",
-    "2026-05-19": "Tue",
-    "2026-05-20": "Wed",
-    "2026-05-21": "Thu",
-    "2026-05-22": "Fri",
-    "2026-05-23": "Sat",
-    "2026-05-24": "Sun",
-    "2026-05-25": "Mon",
-    "2026-05-26": "Tue",
-    "2026-05-27": "Wed",
-    "2026-05-28": "Thu",
-    "2026-05-29": "Fri",
-    "2026-05-30": "Sat",
-    "2026-05-31": "Sun"
-  },
-  "weeks": [
-    {
-      "id": "w1",
-      "label": "Week 1 \u00b7 10-16 May",
-      "dates": [
-        "2026-05-10",
-        "2026-05-11",
-        "2026-05-12",
-        "2026-05-13",
-        "2026-05-14",
-        "2026-05-15",
-        "2026-05-16"
-      ],
-      "do_summary": {
-        "0": 905,
-        "1-20": 1521,
-        "21-30": 320,
-        "31-40": 214,
-        "41-50": 159,
-        "51-60": 98,
-        "60+": 158
-      },
-      "ar_summary": {
-        "0%": 342,
-        "1-20%": 109,
-        "21-40%": 349,
-        "41-60%": 509,
-        "61-80%": 697,
-        "81-99%": 531,
-        "100%": 368
-      }
-    },
-    {
-      "id": "w2",
-      "label": "Week 2 \u00b7 18-24 May",
-      "dates": [
-        "2026-05-18",
-        "2026-05-19",
-        "2026-05-20",
-        "2026-05-21",
-        "2026-05-22",
-        "2026-05-23",
-        "2026-05-24"
-      ],
-      "do_summary": {
-        "0": 785,
-        "1-20": 1436,
-        "21-30": 300,
-        "31-40": 213,
-        "41-50": 117,
-        "51-60": 106,
-        "60+": 168
-      },
-      "ar_summary": {
-        "0%": 286,
-        "1-20%": 101,
-        "21-40%": 317,
-        "41-60%": 479,
-        "61-80%": 655,
-        "81-99%": 510,
-        "100%": 357
-      }
-    },
-    {
-      "id": "w3",
-      "label": "Week 3 \u00b7 25-31 May",
-      "dates": [
-        "2026-05-25",
-        "2026-05-26",
-        "2026-05-27",
-        "2026-05-28",
-        "2026-05-29",
-        "2026-05-30",
-        "2026-05-31"
-      ],
-      "do_summary": {
-        "0": 826,
-        "1-20": 1431,
-        "21-30": 262,
-        "31-40": 195,
-        "41-50": 128,
-        "51-60": 100,
-        "60+": 197
-      },
-      "ar_summary": {
-        "0%": 349,
-        "1-20%": 87,
-        "21-40%": 341,
-        "41-60%": 466,
-        "61-80%": 594,
-        "81-99%": 592,
-        "100%": 332
-      }
-    }
-  ],
-  "daily_totals": {
-    "2026-05-18": {
-      "active_couriers": 1530,
-      "couriers_with_offers": 1299,
-      "total_delivered": 6988.0,
-      "total_accepted": 7450.000004291534,
-      "total_proposed": 11715.0
-    },
-    "2026-05-19": {
-      "active_couriers": 1537,
-      "couriers_with_offers": 1307,
-      "total_delivered": 5647.0,
-      "total_accepted": 6366.000003814697,
-      "total_proposed": 11663.0
-    },
-    "2026-05-20": {
-      "active_couriers": 1582,
-      "couriers_with_offers": 1366,
-      "total_delivered": 6767.0,
-      "total_accepted": 7319.000010251999,
-      "total_proposed": 11637.0
-    },
-    "2026-05-21": {
-      "active_couriers": 1538,
-      "couriers_with_offers": 1344,
-      "total_delivered": 7381.0,
-      "total_accepted": 7963.9999985694885,
-      "total_proposed": 13358.0
-    },
-    "2026-05-22": {
-      "active_couriers": 1517,
-      "couriers_with_offers": 1344,
-      "total_delivered": 7582.0,
-      "total_accepted": 8154.000009059906,
-      "total_proposed": 15021.0
-    },
-    "2026-05-23": {
-      "active_couriers": 1496,
-      "couriers_with_offers": 1309,
-      "total_delivered": 8026.0,
-      "total_accepted": 8605.000006437302,
-      "total_proposed": 13391.0
-    },
-    "2026-05-24": {
-      "active_couriers": 1347,
-      "couriers_with_offers": 1228,
-      "total_delivered": 9158.0,
-      "total_accepted": 9709.000015258789,
-      "total_proposed": 17743.0
-    },
-    "2026-05-25": {
-      "active_couriers": 1441,
-      "couriers_with_offers": 1236,
-      "total_delivered": 6381.0,
-      "total_accepted": 6923.035,
-      "total_proposed": 11143.0
-    },
-    "2026-05-26": {
-      "active_couriers": 1529,
-      "couriers_with_offers": 1273,
-      "total_delivered": 6496.0,
-      "total_accepted": 6986.115000000001,
-      "total_proposed": 10830.0
-    },
-    "2026-05-27": {
-      "active_couriers": 1524,
-      "couriers_with_offers": 1344,
-      "total_delivered": 6911.0,
-      "total_accepted": 7676.129999999999,
-      "total_proposed": 13163.0
-    },
-    "2026-05-28": {
-      "active_couriers": 1577,
-      "couriers_with_offers": 1355,
-      "total_delivered": 7536.0,
-      "total_accepted": 8065.936000000001,
-      "total_proposed": 13585.0
-    },
-    "2026-05-29": {
-      "active_couriers": 1490,
-      "couriers_with_offers": 1333,
-      "total_delivered": 8190.0,
-      "total_accepted": 9131.942,
-      "total_proposed": 16627.0
-    },
-    "2026-05-30": {
-      "active_couriers": 1497,
-      "couriers_with_offers": 1333,
-      "total_delivered": 8775.0,
-      "total_accepted": 9404.373,
-      "total_proposed": 15630.0
-    },
-    "2026-05-31": {
-      "active_couriers": 1394,
-      "couriers_with_offers": 1243,
-      "total_delivered": 9060.0,
-      "total_accepted": 9523.332999999999,
-      "total_proposed": 15023.0
-    },
-    "2026-05-10": {
-      "active_couriers": 1465,
-      "couriers_with_offers": 1319,
-      "total_delivered": 8822.0,
-      "total_accepted": 9432.16,
-      "total_proposed": 16192.0
-    },
-    "2026-05-11": {
-      "active_couriers": 1496,
-      "couriers_with_offers": 1231,
-      "total_delivered": 6094.0,
-      "total_accepted": 6573.924,
-      "total_proposed": 10063.0
-    },
-    "2026-05-12": {
-      "active_couriers": 1666,
-      "couriers_with_offers": 1360,
-      "total_delivered": 6892.0,
-      "total_accepted": 7380.108,
-      "total_proposed": 11610.0
-    },
-    "2026-05-13": {
-      "active_couriers": 1627,
-      "couriers_with_offers": 1415,
-      "total_delivered": 7258.0,
-      "total_accepted": 8107.972999999999,
-      "total_proposed": 14663.0
-    },
-    "2026-05-14": {
-      "active_couriers": 1602,
-      "couriers_with_offers": 1408,
-      "total_delivered": 8565.0,
-      "total_accepted": 9134.904999999999,
-      "total_proposed": 14943.0
-    },
-    "2026-05-15": {
-      "active_couriers": 1646,
-      "couriers_with_offers": 1456,
-      "total_delivered": 7551.0,
-      "total_accepted": 8414.107,
-      "total_proposed": 14630.0
-    },
-    "2026-05-16": {
-      "active_couriers": 1554,
-      "couriers_with_offers": 1389,
-      "total_delivered": 8080.0,
-      "total_accepted": 8741.212,
-      "total_proposed": 14629.0
-    }
-  },
   "do_buckets": [
     "0",
     "1-5",
@@ -455,15 +199,6 @@
     "18-20",
     "21-25",
     "26+"
-  ],
-  "ar_buckets": [
-    "0%",
-    "1-20%",
-    "21-40%",
-    "41-60%",
-    "61-80%",
-    "81-99%",
-    "100%"
   ],
   "do_summary_buckets": [
     "0",
@@ -474,404 +209,1476 @@
     "51-60",
     "60+"
   ],
-  "do_daily": {
-    "2026-05-18": {
-      "0": 404,
-      "1-5": 582,
-      "6-10": 366,
-      "11-17": 150,
-      "18-20": 11,
-      "21-25": 14,
-      "26+": 3
+  "cities": [
+    {
+      "name": "Kyiv",
+      "dates": [
+        "2026-05-10",
+        "2026-05-11",
+        "2026-05-12",
+        "2026-05-13",
+        "2026-05-14",
+        "2026-05-15",
+        "2026-05-16",
+        "2026-05-18",
+        "2026-05-19",
+        "2026-05-20",
+        "2026-05-21",
+        "2026-05-22",
+        "2026-05-23",
+        "2026-05-24",
+        "2026-05-25",
+        "2026-05-26",
+        "2026-05-27",
+        "2026-05-28",
+        "2026-05-29",
+        "2026-05-30",
+        "2026-05-31"
+      ],
+      "weekday_map": {
+        "2026-05-10": "Sun",
+        "2026-05-11": "Mon",
+        "2026-05-12": "Tue",
+        "2026-05-13": "Wed",
+        "2026-05-14": "Thu",
+        "2026-05-15": "Fri",
+        "2026-05-16": "Sat",
+        "2026-05-18": "Mon",
+        "2026-05-19": "Tue",
+        "2026-05-20": "Wed",
+        "2026-05-21": "Thu",
+        "2026-05-22": "Fri",
+        "2026-05-23": "Sat",
+        "2026-05-24": "Sun",
+        "2026-05-25": "Mon",
+        "2026-05-26": "Tue",
+        "2026-05-27": "Wed",
+        "2026-05-28": "Thu",
+        "2026-05-29": "Fri",
+        "2026-05-30": "Sat",
+        "2026-05-31": "Sun"
+      },
+      "weeks": [
+        {
+          "id": "kyiv-w1",
+          "label": "Week 1 \u00b7 10-16 May",
+          "dates": [
+            "2026-05-10",
+            "2026-05-11",
+            "2026-05-12",
+            "2026-05-13",
+            "2026-05-14",
+            "2026-05-15",
+            "2026-05-16"
+          ],
+          "do_summary": {
+            "0": 905,
+            "1-20": 1521,
+            "21-30": 320,
+            "31-40": 214,
+            "41-50": 159,
+            "51-60": 98,
+            "60+": 158
+          },
+          "n_couriers": 3375,
+          "total_do": 53262.0,
+          "total_active_couriers": 11056
+        },
+        {
+          "id": "kyiv-w2",
+          "label": "Week 2 \u00b7 18-24 May",
+          "dates": [
+            "2026-05-18",
+            "2026-05-19",
+            "2026-05-20",
+            "2026-05-21",
+            "2026-05-22",
+            "2026-05-23",
+            "2026-05-24"
+          ],
+          "do_summary": {
+            "0": 785,
+            "1-20": 1436,
+            "21-30": 300,
+            "31-40": 213,
+            "41-50": 117,
+            "51-60": 106,
+            "60+": 168
+          },
+          "n_couriers": 3125,
+          "total_do": 51549.0,
+          "total_active_couriers": 10547
+        },
+        {
+          "id": "kyiv-w3",
+          "label": "Week 3 \u00b7 25-31 May",
+          "dates": [
+            "2026-05-25",
+            "2026-05-26",
+            "2026-05-27",
+            "2026-05-28",
+            "2026-05-29",
+            "2026-05-30",
+            "2026-05-31"
+          ],
+          "do_summary": {
+            "0": 826,
+            "1-20": 1431,
+            "21-30": 262,
+            "31-40": 195,
+            "41-50": 128,
+            "51-60": 100,
+            "60+": 197
+          },
+          "n_couriers": 3139,
+          "total_do": 53349.0,
+          "total_active_couriers": 10452
+        }
+      ],
+      "daily_totals": {
+        "2026-05-10": {
+          "active_couriers": 1465,
+          "total_delivered": 8822.0
+        },
+        "2026-05-11": {
+          "active_couriers": 1496,
+          "total_delivered": 6094.0
+        },
+        "2026-05-12": {
+          "active_couriers": 1666,
+          "total_delivered": 6892.0
+        },
+        "2026-05-13": {
+          "active_couriers": 1627,
+          "total_delivered": 7258.0
+        },
+        "2026-05-14": {
+          "active_couriers": 1602,
+          "total_delivered": 8565.0
+        },
+        "2026-05-15": {
+          "active_couriers": 1646,
+          "total_delivered": 7551.0
+        },
+        "2026-05-16": {
+          "active_couriers": 1554,
+          "total_delivered": 8080.0
+        },
+        "2026-05-18": {
+          "active_couriers": 1530,
+          "total_delivered": 6988.0
+        },
+        "2026-05-19": {
+          "active_couriers": 1537,
+          "total_delivered": 5647.0
+        },
+        "2026-05-20": {
+          "active_couriers": 1582,
+          "total_delivered": 6767.0
+        },
+        "2026-05-21": {
+          "active_couriers": 1538,
+          "total_delivered": 7381.0
+        },
+        "2026-05-22": {
+          "active_couriers": 1517,
+          "total_delivered": 7582.0
+        },
+        "2026-05-23": {
+          "active_couriers": 1496,
+          "total_delivered": 8026.0
+        },
+        "2026-05-24": {
+          "active_couriers": 1347,
+          "total_delivered": 9158.0
+        },
+        "2026-05-25": {
+          "active_couriers": 1441,
+          "total_delivered": 6381.0
+        },
+        "2026-05-26": {
+          "active_couriers": 1529,
+          "total_delivered": 6496.0
+        },
+        "2026-05-27": {
+          "active_couriers": 1524,
+          "total_delivered": 6911.0
+        },
+        "2026-05-28": {
+          "active_couriers": 1577,
+          "total_delivered": 7536.0
+        },
+        "2026-05-29": {
+          "active_couriers": 1490,
+          "total_delivered": 8190.0
+        },
+        "2026-05-30": {
+          "active_couriers": 1497,
+          "total_delivered": 8775.0
+        },
+        "2026-05-31": {
+          "active_couriers": 1394,
+          "total_delivered": 9060.0
+        }
+      },
+      "do_daily": {
+        "2026-05-10": {
+          "0": 353,
+          "1-5": 454,
+          "6-10": 366,
+          "11-17": 208,
+          "18-20": 42,
+          "21-25": 25,
+          "26+": 17
+        },
+        "2026-05-11": {
+          "0": 449,
+          "1-5": 614,
+          "6-10": 267,
+          "11-17": 141,
+          "18-20": 14,
+          "21-25": 11,
+          "26+": 0
+        },
+        "2026-05-12": {
+          "0": 494,
+          "1-5": 666,
+          "6-10": 345,
+          "11-17": 132,
+          "18-20": 18,
+          "21-25": 11,
+          "26+": 0
+        },
+        "2026-05-13": {
+          "0": 503,
+          "1-5": 611,
+          "6-10": 320,
+          "11-17": 125,
+          "18-20": 42,
+          "21-25": 23,
+          "26+": 3
+        },
+        "2026-05-14": {
+          "0": 347,
+          "1-5": 620,
+          "6-10": 387,
+          "11-17": 199,
+          "18-20": 17,
+          "21-25": 25,
+          "26+": 7
+        },
+        "2026-05-15": {
+          "0": 397,
+          "1-5": 669,
+          "6-10": 397,
+          "11-17": 141,
+          "18-20": 32,
+          "21-25": 8,
+          "26+": 2
+        },
+        "2026-05-16": {
+          "0": 351,
+          "1-5": 585,
+          "6-10": 383,
+          "11-17": 185,
+          "18-20": 20,
+          "21-25": 24,
+          "26+": 6
+        },
+        "2026-05-18": {
+          "0": 404,
+          "1-5": 582,
+          "6-10": 366,
+          "11-17": 150,
+          "18-20": 11,
+          "21-25": 14,
+          "26+": 3
+        },
+        "2026-05-19": {
+          "0": 462,
+          "1-5": 673,
+          "6-10": 290,
+          "11-17": 95,
+          "18-20": 10,
+          "21-25": 7,
+          "26+": 0
+        },
+        "2026-05-20": {
+          "0": 402,
+          "1-5": 685,
+          "6-10": 351,
+          "11-17": 117,
+          "18-20": 15,
+          "21-25": 9,
+          "26+": 3
+        },
+        "2026-05-21": {
+          "0": 352,
+          "1-5": 656,
+          "6-10": 320,
+          "11-17": 173,
+          "18-20": 18,
+          "21-25": 14,
+          "26+": 5
+        },
+        "2026-05-22": {
+          "0": 362,
+          "1-5": 578,
+          "6-10": 374,
+          "11-17": 161,
+          "18-20": 24,
+          "21-25": 17,
+          "26+": 1
+        },
+        "2026-05-23": {
+          "0": 343,
+          "1-5": 596,
+          "6-10": 313,
+          "11-17": 172,
+          "18-20": 29,
+          "21-25": 34,
+          "26+": 9
+        },
+        "2026-05-24": {
+          "0": 241,
+          "1-5": 441,
+          "6-10": 359,
+          "11-17": 199,
+          "18-20": 40,
+          "21-25": 54,
+          "26+": 13
+        },
+        "2026-05-25": {
+          "0": 375,
+          "1-5": 578,
+          "6-10": 336,
+          "11-17": 125,
+          "18-20": 13,
+          "21-25": 14,
+          "26+": 0
+        },
+        "2026-05-26": {
+          "0": 424,
+          "1-5": 626,
+          "6-10": 315,
+          "11-17": 137,
+          "18-20": 14,
+          "21-25": 13,
+          "26+": 0
+        },
+        "2026-05-27": {
+          "0": 378,
+          "1-5": 625,
+          "6-10": 350,
+          "11-17": 142,
+          "18-20": 17,
+          "21-25": 11,
+          "26+": 1
+        },
+        "2026-05-28": {
+          "0": 402,
+          "1-5": 617,
+          "6-10": 347,
+          "11-17": 166,
+          "18-20": 30,
+          "21-25": 11,
+          "26+": 4
+        },
+        "2026-05-29": {
+          "0": 382,
+          "1-5": 516,
+          "6-10": 327,
+          "11-17": 173,
+          "18-20": 55,
+          "21-25": 33,
+          "26+": 4
+        },
+        "2026-05-30": {
+          "0": 386,
+          "1-5": 493,
+          "6-10": 338,
+          "11-17": 169,
+          "18-20": 26,
+          "21-25": 63,
+          "26+": 22
+        },
+        "2026-05-31": {
+          "0": 318,
+          "1-5": 473,
+          "6-10": 288,
+          "11-17": 178,
+          "18-20": 57,
+          "21-25": 58,
+          "26+": 22
+        }
+      }
     },
-    "2026-05-19": {
-      "0": 462,
-      "1-5": 673,
-      "6-10": 290,
-      "11-17": 95,
-      "18-20": 10,
-      "21-25": 7,
-      "26+": 0
-    },
-    "2026-05-20": {
-      "0": 402,
-      "1-5": 685,
-      "6-10": 351,
-      "11-17": 117,
-      "18-20": 15,
-      "21-25": 9,
-      "26+": 3
-    },
-    "2026-05-21": {
-      "0": 352,
-      "1-5": 656,
-      "6-10": 320,
-      "11-17": 173,
-      "18-20": 18,
-      "21-25": 14,
-      "26+": 5
-    },
-    "2026-05-22": {
-      "0": 362,
-      "1-5": 578,
-      "6-10": 374,
-      "11-17": 161,
-      "18-20": 24,
-      "21-25": 17,
-      "26+": 1
-    },
-    "2026-05-23": {
-      "0": 343,
-      "1-5": 596,
-      "6-10": 313,
-      "11-17": 172,
-      "18-20": 29,
-      "21-25": 34,
-      "26+": 9
-    },
-    "2026-05-24": {
-      "0": 241,
-      "1-5": 441,
-      "6-10": 359,
-      "11-17": 199,
-      "18-20": 40,
-      "21-25": 54,
-      "26+": 13
-    },
-    "2026-05-25": {
-      "0": 375,
-      "1-5": 578,
-      "6-10": 336,
-      "11-17": 125,
-      "18-20": 13,
-      "21-25": 14,
-      "26+": 0
-    },
-    "2026-05-26": {
-      "0": 424,
-      "1-5": 626,
-      "6-10": 315,
-      "11-17": 137,
-      "18-20": 14,
-      "21-25": 13,
-      "26+": 0
-    },
-    "2026-05-27": {
-      "0": 378,
-      "1-5": 625,
-      "6-10": 350,
-      "11-17": 142,
-      "18-20": 17,
-      "21-25": 11,
-      "26+": 1
-    },
-    "2026-05-28": {
-      "0": 402,
-      "1-5": 617,
-      "6-10": 347,
-      "11-17": 166,
-      "18-20": 30,
-      "21-25": 11,
-      "26+": 4
-    },
-    "2026-05-29": {
-      "0": 382,
-      "1-5": 516,
-      "6-10": 327,
-      "11-17": 173,
-      "18-20": 55,
-      "21-25": 33,
-      "26+": 4
-    },
-    "2026-05-30": {
-      "0": 386,
-      "1-5": 493,
-      "6-10": 338,
-      "11-17": 169,
-      "18-20": 26,
-      "21-25": 63,
-      "26+": 22
-    },
-    "2026-05-31": {
-      "0": 318,
-      "1-5": 473,
-      "6-10": 288,
-      "11-17": 178,
-      "18-20": 57,
-      "21-25": 58,
-      "26+": 22
-    },
-    "2026-05-10": {
-      "0": 353,
-      "1-5": 454,
-      "6-10": 366,
-      "11-17": 208,
-      "18-20": 42,
-      "21-25": 25,
-      "26+": 17
-    },
-    "2026-05-11": {
-      "0": 449,
-      "1-5": 614,
-      "6-10": 267,
-      "11-17": 141,
-      "18-20": 14,
-      "21-25": 11,
-      "26+": 0
-    },
-    "2026-05-12": {
-      "0": 494,
-      "1-5": 666,
-      "6-10": 345,
-      "11-17": 132,
-      "18-20": 18,
-      "21-25": 11,
-      "26+": 0
-    },
-    "2026-05-13": {
-      "0": 503,
-      "1-5": 611,
-      "6-10": 320,
-      "11-17": 125,
-      "18-20": 42,
-      "21-25": 23,
-      "26+": 3
-    },
-    "2026-05-14": {
-      "0": 347,
-      "1-5": 620,
-      "6-10": 387,
-      "11-17": 199,
-      "18-20": 17,
-      "21-25": 25,
-      "26+": 7
-    },
-    "2026-05-15": {
-      "0": 397,
-      "1-5": 669,
-      "6-10": 397,
-      "11-17": 141,
-      "18-20": 32,
-      "21-25": 8,
-      "26+": 2
-    },
-    "2026-05-16": {
-      "0": 351,
-      "1-5": 585,
-      "6-10": 383,
-      "11-17": 185,
-      "18-20": 20,
-      "21-25": 24,
-      "26+": 6
+    {
+      "name": "Zaporizhia",
+      "dates": [
+        "2026-04-06",
+        "2026-04-07",
+        "2026-04-08",
+        "2026-04-09",
+        "2026-04-10",
+        "2026-04-11",
+        "2026-04-12",
+        "2026-04-13",
+        "2026-04-14",
+        "2026-04-15",
+        "2026-04-16",
+        "2026-04-17",
+        "2026-04-18",
+        "2026-04-19",
+        "2026-04-20",
+        "2026-04-21",
+        "2026-04-22",
+        "2026-04-23",
+        "2026-04-24",
+        "2026-04-25",
+        "2026-04-26",
+        "2026-04-27",
+        "2026-04-28",
+        "2026-04-29",
+        "2026-04-30",
+        "2026-05-01",
+        "2026-05-02",
+        "2026-05-03",
+        "2026-05-04",
+        "2026-05-05",
+        "2026-05-06",
+        "2026-05-07",
+        "2026-05-08",
+        "2026-05-09",
+        "2026-05-10",
+        "2026-05-11",
+        "2026-05-12",
+        "2026-05-13",
+        "2026-05-14",
+        "2026-05-15",
+        "2026-05-16",
+        "2026-05-17",
+        "2026-05-18",
+        "2026-05-19",
+        "2026-05-20",
+        "2026-05-21",
+        "2026-05-22",
+        "2026-05-23",
+        "2026-05-24",
+        "2026-05-25",
+        "2026-05-26",
+        "2026-05-27",
+        "2026-05-28",
+        "2026-05-29",
+        "2026-05-30",
+        "2026-05-31"
+      ],
+      "weekday_map": {
+        "2026-04-06": "Mon",
+        "2026-04-07": "Tue",
+        "2026-04-08": "Wed",
+        "2026-04-09": "Thu",
+        "2026-04-10": "Fri",
+        "2026-04-11": "Sat",
+        "2026-04-12": "Sun",
+        "2026-04-13": "Mon",
+        "2026-04-14": "Tue",
+        "2026-04-15": "Wed",
+        "2026-04-16": "Thu",
+        "2026-04-17": "Fri",
+        "2026-04-18": "Sat",
+        "2026-04-19": "Sun",
+        "2026-04-20": "Mon",
+        "2026-04-21": "Tue",
+        "2026-04-22": "Wed",
+        "2026-04-23": "Thu",
+        "2026-04-24": "Fri",
+        "2026-04-25": "Sat",
+        "2026-04-26": "Sun",
+        "2026-04-27": "Mon",
+        "2026-04-28": "Tue",
+        "2026-04-29": "Wed",
+        "2026-04-30": "Thu",
+        "2026-05-01": "Fri",
+        "2026-05-02": "Sat",
+        "2026-05-03": "Sun",
+        "2026-05-04": "Mon",
+        "2026-05-05": "Tue",
+        "2026-05-06": "Wed",
+        "2026-05-07": "Thu",
+        "2026-05-08": "Fri",
+        "2026-05-09": "Sat",
+        "2026-05-10": "Sun",
+        "2026-05-11": "Mon",
+        "2026-05-12": "Tue",
+        "2026-05-13": "Wed",
+        "2026-05-14": "Thu",
+        "2026-05-15": "Fri",
+        "2026-05-16": "Sat",
+        "2026-05-17": "Sun",
+        "2026-05-18": "Mon",
+        "2026-05-19": "Tue",
+        "2026-05-20": "Wed",
+        "2026-05-21": "Thu",
+        "2026-05-22": "Fri",
+        "2026-05-23": "Sat",
+        "2026-05-24": "Sun",
+        "2026-05-25": "Mon",
+        "2026-05-26": "Tue",
+        "2026-05-27": "Wed",
+        "2026-05-28": "Thu",
+        "2026-05-29": "Fri",
+        "2026-05-30": "Sat",
+        "2026-05-31": "Sun"
+      },
+      "weeks": [
+        {
+          "id": "zaporizhia-w1",
+          "label": "Week 1 \u00b7 6-12 Apr",
+          "dates": [
+            "2026-04-06",
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10",
+            "2026-04-11",
+            "2026-04-12"
+          ],
+          "do_summary": {
+            "0": 45,
+            "1-20": 69,
+            "21-30": 11,
+            "31-40": 10,
+            "41-50": 4,
+            "51-60": 1,
+            "60+": 1
+          },
+          "n_couriers": 141,
+          "total_do": 1410.0,
+          "total_active_couriers": 469
+        },
+        {
+          "id": "zaporizhia-w2",
+          "label": "Week 2 \u00b7 13-19 Apr",
+          "dates": [
+            "2026-04-13",
+            "2026-04-14",
+            "2026-04-15",
+            "2026-04-16",
+            "2026-04-17",
+            "2026-04-18",
+            "2026-04-19"
+          ],
+          "do_summary": {
+            "0": 36,
+            "1-20": 74,
+            "21-30": 11,
+            "31-40": 8,
+            "41-50": 3,
+            "51-60": 4,
+            "60+": 2
+          },
+          "n_couriers": 138,
+          "total_do": 1527.0,
+          "total_active_couriers": 450
+        },
+        {
+          "id": "zaporizhia-w3",
+          "label": "Week 3 \u00b7 20-26 Apr",
+          "dates": [
+            "2026-04-20",
+            "2026-04-21",
+            "2026-04-22",
+            "2026-04-23",
+            "2026-04-24",
+            "2026-04-25",
+            "2026-04-26"
+          ],
+          "do_summary": {
+            "0": 41,
+            "1-20": 68,
+            "21-30": 9,
+            "31-40": 7,
+            "41-50": 9,
+            "51-60": 1,
+            "60+": 4
+          },
+          "n_couriers": 139,
+          "total_do": 1662.0,
+          "total_active_couriers": 462
+        },
+        {
+          "id": "zaporizhia-w4",
+          "label": "Week 4 \u00b7 27 Apr - 3 May",
+          "dates": [
+            "2026-04-27",
+            "2026-04-28",
+            "2026-04-29",
+            "2026-04-30",
+            "2026-05-01",
+            "2026-05-02",
+            "2026-05-03"
+          ],
+          "do_summary": {
+            "0": 47,
+            "1-20": 75,
+            "21-30": 15,
+            "31-40": 12,
+            "41-50": 2,
+            "51-60": 3,
+            "60+": 0
+          },
+          "n_couriers": 154,
+          "total_do": 1575.0,
+          "total_active_couriers": 520
+        },
+        {
+          "id": "zaporizhia-w5",
+          "label": "Week 5 \u00b7 4-10 May",
+          "dates": [
+            "2026-05-04",
+            "2026-05-05",
+            "2026-05-06",
+            "2026-05-07",
+            "2026-05-08",
+            "2026-05-09",
+            "2026-05-10"
+          ],
+          "do_summary": {
+            "0": 40,
+            "1-20": 80,
+            "21-30": 15,
+            "31-40": 7,
+            "41-50": 6,
+            "51-60": 1,
+            "60+": 2
+          },
+          "n_couriers": 151,
+          "total_do": 1693.0,
+          "total_active_couriers": 521
+        },
+        {
+          "id": "zaporizhia-w6",
+          "label": "Week 6 \u00b7 11-17 May",
+          "dates": [
+            "2026-05-11",
+            "2026-05-12",
+            "2026-05-13",
+            "2026-05-14",
+            "2026-05-15",
+            "2026-05-16",
+            "2026-05-17"
+          ],
+          "do_summary": {
+            "0": 44,
+            "1-20": 72,
+            "21-30": 18,
+            "31-40": 5,
+            "41-50": 4,
+            "51-60": 1,
+            "60+": 2
+          },
+          "n_couriers": 146,
+          "total_do": 1620.0,
+          "total_active_couriers": 471
+        },
+        {
+          "id": "zaporizhia-w7",
+          "label": "Week 7 \u00b7 18-24 May",
+          "dates": [
+            "2026-05-18",
+            "2026-05-19",
+            "2026-05-20",
+            "2026-05-21",
+            "2026-05-22",
+            "2026-05-23",
+            "2026-05-24"
+          ],
+          "do_summary": {
+            "0": 32,
+            "1-20": 77,
+            "21-30": 7,
+            "31-40": 8,
+            "41-50": 4,
+            "51-60": 5,
+            "60+": 0
+          },
+          "n_couriers": 133,
+          "total_do": 1484.0,
+          "total_active_couriers": 494
+        },
+        {
+          "id": "zaporizhia-w8",
+          "label": "Week 8 \u00b7 25-31 May",
+          "dates": [
+            "2026-05-25",
+            "2026-05-26",
+            "2026-05-27",
+            "2026-05-28",
+            "2026-05-29",
+            "2026-05-30",
+            "2026-05-31"
+          ],
+          "do_summary": {
+            "0": 46,
+            "1-20": 74,
+            "21-30": 12,
+            "31-40": 5,
+            "41-50": 3,
+            "51-60": 3,
+            "60+": 4
+          },
+          "n_couriers": 147,
+          "total_do": 1654.0,
+          "total_active_couriers": 490
+        }
+      ],
+      "daily_totals": {
+        "2026-04-06": {
+          "active_couriers": 71,
+          "total_delivered": 148.0
+        },
+        "2026-04-07": {
+          "active_couriers": 73,
+          "total_delivered": 178.0
+        },
+        "2026-04-08": {
+          "active_couriers": 69,
+          "total_delivered": 205.0
+        },
+        "2026-04-09": {
+          "active_couriers": 65,
+          "total_delivered": 213.0
+        },
+        "2026-04-10": {
+          "active_couriers": 75,
+          "total_delivered": 216.0
+        },
+        "2026-04-11": {
+          "active_couriers": 69,
+          "total_delivered": 258.0
+        },
+        "2026-04-12": {
+          "active_couriers": 47,
+          "total_delivered": 192.0
+        },
+        "2026-04-13": {
+          "active_couriers": 67,
+          "total_delivered": 194.0
+        },
+        "2026-04-14": {
+          "active_couriers": 67,
+          "total_delivered": 181.0
+        },
+        "2026-04-15": {
+          "active_couriers": 67,
+          "total_delivered": 202.0
+        },
+        "2026-04-16": {
+          "active_couriers": 59,
+          "total_delivered": 205.0
+        },
+        "2026-04-17": {
+          "active_couriers": 67,
+          "total_delivered": 244.0
+        },
+        "2026-04-18": {
+          "active_couriers": 68,
+          "total_delivered": 253.0
+        },
+        "2026-04-19": {
+          "active_couriers": 55,
+          "total_delivered": 248.0
+        },
+        "2026-04-20": {
+          "active_couriers": 79,
+          "total_delivered": 195.0
+        },
+        "2026-04-21": {
+          "active_couriers": 51,
+          "total_delivered": 232.0
+        },
+        "2026-04-22": {
+          "active_couriers": 71,
+          "total_delivered": 229.0
+        },
+        "2026-04-23": {
+          "active_couriers": 68,
+          "total_delivered": 242.0
+        },
+        "2026-04-24": {
+          "active_couriers": 71,
+          "total_delivered": 237.0
+        },
+        "2026-04-25": {
+          "active_couriers": 62,
+          "total_delivered": 251.0
+        },
+        "2026-04-26": {
+          "active_couriers": 60,
+          "total_delivered": 276.0
+        },
+        "2026-04-27": {
+          "active_couriers": 72,
+          "total_delivered": 224.0
+        },
+        "2026-04-28": {
+          "active_couriers": 82,
+          "total_delivered": 211.0
+        },
+        "2026-04-29": {
+          "active_couriers": 78,
+          "total_delivered": 196.0
+        },
+        "2026-04-30": {
+          "active_couriers": 73,
+          "total_delivered": 203.0
+        },
+        "2026-05-01": {
+          "active_couriers": 72,
+          "total_delivered": 224.0
+        },
+        "2026-05-02": {
+          "active_couriers": 80,
+          "total_delivered": 271.0
+        },
+        "2026-05-03": {
+          "active_couriers": 63,
+          "total_delivered": 246.0
+        },
+        "2026-05-04": {
+          "active_couriers": 74,
+          "total_delivered": 213.0
+        },
+        "2026-05-05": {
+          "active_couriers": 76,
+          "total_delivered": 238.0
+        },
+        "2026-05-06": {
+          "active_couriers": 91,
+          "total_delivered": 231.0
+        },
+        "2026-05-07": {
+          "active_couriers": 71,
+          "total_delivered": 234.0
+        },
+        "2026-05-08": {
+          "active_couriers": 82,
+          "total_delivered": 270.0
+        },
+        "2026-05-09": {
+          "active_couriers": 62,
+          "total_delivered": 248.0
+        },
+        "2026-05-10": {
+          "active_couriers": 65,
+          "total_delivered": 259.0
+        },
+        "2026-05-11": {
+          "active_couriers": 63,
+          "total_delivered": 217.0
+        },
+        "2026-05-12": {
+          "active_couriers": 75,
+          "total_delivered": 215.0
+        },
+        "2026-05-13": {
+          "active_couriers": 73,
+          "total_delivered": 229.0
+        },
+        "2026-05-14": {
+          "active_couriers": 71,
+          "total_delivered": 207.0
+        },
+        "2026-05-15": {
+          "active_couriers": 70,
+          "total_delivered": 234.0
+        },
+        "2026-05-16": {
+          "active_couriers": 63,
+          "total_delivered": 237.0
+        },
+        "2026-05-17": {
+          "active_couriers": 56,
+          "total_delivered": 281.0
+        },
+        "2026-05-18": {
+          "active_couriers": 78,
+          "total_delivered": 178.0
+        },
+        "2026-05-19": {
+          "active_couriers": 71,
+          "total_delivered": 213.0
+        },
+        "2026-05-20": {
+          "active_couriers": 73,
+          "total_delivered": 226.0
+        },
+        "2026-05-21": {
+          "active_couriers": 80,
+          "total_delivered": 193.0
+        },
+        "2026-05-22": {
+          "active_couriers": 69,
+          "total_delivered": 194.0
+        },
+        "2026-05-23": {
+          "active_couriers": 60,
+          "total_delivered": 251.0
+        },
+        "2026-05-24": {
+          "active_couriers": 63,
+          "total_delivered": 229.0
+        },
+        "2026-05-25": {
+          "active_couriers": 66,
+          "total_delivered": 222.0
+        },
+        "2026-05-26": {
+          "active_couriers": 80,
+          "total_delivered": 219.0
+        },
+        "2026-05-27": {
+          "active_couriers": 75,
+          "total_delivered": 211.0
+        },
+        "2026-05-28": {
+          "active_couriers": 62,
+          "total_delivered": 213.0
+        },
+        "2026-05-29": {
+          "active_couriers": 75,
+          "total_delivered": 270.0
+        },
+        "2026-05-30": {
+          "active_couriers": 66,
+          "total_delivered": 261.0
+        },
+        "2026-05-31": {
+          "active_couriers": 66,
+          "total_delivered": 258.0
+        }
+      },
+      "do_daily": {
+        "2026-04-06": {
+          "0": 22,
+          "1-5": 42,
+          "6-10": 6,
+          "11-17": 1,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-07": {
+          "0": 27,
+          "1-5": 36,
+          "6-10": 9,
+          "11-17": 1,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-08": {
+          "0": 27,
+          "1-5": 27,
+          "6-10": 11,
+          "11-17": 4,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-09": {
+          "0": 18,
+          "1-5": 33,
+          "6-10": 11,
+          "11-17": 3,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-10": {
+          "0": 26,
+          "1-5": 33,
+          "6-10": 15,
+          "11-17": 1,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-11": {
+          "0": 22,
+          "1-5": 28,
+          "6-10": 13,
+          "11-17": 6,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-12": {
+          "0": 13,
+          "1-5": 21,
+          "6-10": 9,
+          "11-17": 3,
+          "18-20": 1,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-13": {
+          "0": 22,
+          "1-5": 32,
+          "6-10": 10,
+          "11-17": 3,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-14": {
+          "0": 21,
+          "1-5": 36,
+          "6-10": 9,
+          "11-17": 1,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-15": {
+          "0": 24,
+          "1-5": 29,
+          "6-10": 11,
+          "11-17": 3,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-16": {
+          "0": 13,
+          "1-5": 32,
+          "6-10": 10,
+          "11-17": 4,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-17": {
+          "0": 11,
+          "1-5": 39,
+          "6-10": 13,
+          "11-17": 4,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-18": {
+          "0": 13,
+          "1-5": 36,
+          "6-10": 16,
+          "11-17": 3,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-19": {
+          "0": 14,
+          "1-5": 22,
+          "6-10": 12,
+          "11-17": 6,
+          "18-20": 1,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-20": {
+          "0": 28,
+          "1-5": 39,
+          "6-10": 12,
+          "11-17": 0,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-21": {
+          "0": 10,
+          "1-5": 23,
+          "6-10": 12,
+          "11-17": 5,
+          "18-20": 1,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-22": {
+          "0": 21,
+          "1-5": 36,
+          "6-10": 11,
+          "11-17": 3,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-23": {
+          "0": 20,
+          "1-5": 30,
+          "6-10": 14,
+          "11-17": 4,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-24": {
+          "0": 19,
+          "1-5": 32,
+          "6-10": 18,
+          "11-17": 2,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-25": {
+          "0": 15,
+          "1-5": 27,
+          "6-10": 15,
+          "11-17": 5,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-26": {
+          "0": 19,
+          "1-5": 20,
+          "6-10": 12,
+          "11-17": 7,
+          "18-20": 1,
+          "21-25": 1,
+          "26+": 0
+        },
+        "2026-04-27": {
+          "0": 25,
+          "1-5": 29,
+          "6-10": 15,
+          "11-17": 3,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-28": {
+          "0": 33,
+          "1-5": 34,
+          "6-10": 13,
+          "11-17": 2,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-29": {
+          "0": 30,
+          "1-5": 37,
+          "6-10": 8,
+          "11-17": 3,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-04-30": {
+          "0": 21,
+          "1-5": 37,
+          "6-10": 13,
+          "11-17": 2,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-01": {
+          "0": 21,
+          "1-5": 37,
+          "6-10": 12,
+          "11-17": 2,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-02": {
+          "0": 24,
+          "1-5": 33,
+          "6-10": 18,
+          "11-17": 5,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-03": {
+          "0": 17,
+          "1-5": 24,
+          "6-10": 20,
+          "11-17": 2,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-04": {
+          "0": 23,
+          "1-5": 38,
+          "6-10": 9,
+          "11-17": 4,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-05": {
+          "0": 21,
+          "1-5": 40,
+          "6-10": 13,
+          "11-17": 2,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-06": {
+          "0": 32,
+          "1-5": 46,
+          "6-10": 12,
+          "11-17": 1,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-07": {
+          "0": 28,
+          "1-5": 26,
+          "6-10": 14,
+          "11-17": 3,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-08": {
+          "0": 25,
+          "1-5": 34,
+          "6-10": 20,
+          "11-17": 3,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-09": {
+          "0": 13,
+          "1-5": 32,
+          "6-10": 14,
+          "11-17": 3,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-10": {
+          "0": 19,
+          "1-5": 28,
+          "6-10": 14,
+          "11-17": 3,
+          "18-20": 1,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-11": {
+          "0": 20,
+          "1-5": 24,
+          "6-10": 15,
+          "11-17": 4,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-12": {
+          "0": 25,
+          "1-5": 33,
+          "6-10": 15,
+          "11-17": 2,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-13": {
+          "0": 28,
+          "1-5": 31,
+          "6-10": 9,
+          "11-17": 5,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-14": {
+          "0": 29,
+          "1-5": 25,
+          "6-10": 15,
+          "11-17": 2,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-15": {
+          "0": 20,
+          "1-5": 35,
+          "6-10": 11,
+          "11-17": 4,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-16": {
+          "0": 11,
+          "1-5": 33,
+          "6-10": 18,
+          "11-17": 1,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-17": {
+          "0": 10,
+          "1-5": 27,
+          "6-10": 10,
+          "11-17": 8,
+          "18-20": 0,
+          "21-25": 1,
+          "26+": 0
+        },
+        "2026-05-18": {
+          "0": 27,
+          "1-5": 40,
+          "6-10": 9,
+          "11-17": 2,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-19": {
+          "0": 25,
+          "1-5": 32,
+          "6-10": 12,
+          "11-17": 2,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-20": {
+          "0": 24,
+          "1-5": 37,
+          "6-10": 9,
+          "11-17": 3,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-21": {
+          "0": 29,
+          "1-5": 38,
+          "6-10": 13,
+          "11-17": 0,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-22": {
+          "0": 20,
+          "1-5": 36,
+          "6-10": 11,
+          "11-17": 2,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-23": {
+          "0": 12,
+          "1-5": 32,
+          "6-10": 12,
+          "11-17": 4,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-24": {
+          "0": 17,
+          "1-5": 31,
+          "6-10": 8,
+          "11-17": 7,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-25": {
+          "0": 25,
+          "1-5": 23,
+          "6-10": 13,
+          "11-17": 5,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-26": {
+          "0": 30,
+          "1-5": 38,
+          "6-10": 6,
+          "11-17": 6,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-27": {
+          "0": 27,
+          "1-5": 34,
+          "6-10": 10,
+          "11-17": 4,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-28": {
+          "0": 21,
+          "1-5": 27,
+          "6-10": 10,
+          "11-17": 4,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-29": {
+          "0": 22,
+          "1-5": 35,
+          "6-10": 10,
+          "11-17": 7,
+          "18-20": 1,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-30": {
+          "0": 17,
+          "1-5": 28,
+          "6-10": 16,
+          "11-17": 5,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        },
+        "2026-05-31": {
+          "0": 22,
+          "1-5": 24,
+          "6-10": 14,
+          "11-17": 6,
+          "18-20": 0,
+          "21-25": 0,
+          "26+": 0
+        }
+      }
     }
-  },
-  "ar_daily": {
-    "2026-05-18": {
-      "0%": 143,
-      "1-20%": 28,
-      "21-40%": 104,
-      "41-60%": 194,
-      "61-80%": 247,
-      "81-99%": 204,
-      "100%": 379
-    },
-    "2026-05-19": {
-      "0%": 173,
-      "1-20%": 56,
-      "21-40%": 134,
-      "41-60%": 230,
-      "61-80%": 238,
-      "81-99%": 162,
-      "100%": 314
-    },
-    "2026-05-20": {
-      "0%": 140,
-      "1-20%": 34,
-      "21-40%": 116,
-      "41-60%": 215,
-      "61-80%": 308,
-      "81-99%": 194,
-      "100%": 359
-    },
-    "2026-05-21": {
-      "0%": 124,
-      "1-20%": 33,
-      "21-40%": 135,
-      "41-60%": 231,
-      "61-80%": 279,
-      "81-99%": 200,
-      "100%": 342
-    },
-    "2026-05-22": {
-      "0%": 148,
-      "1-20%": 50,
-      "21-40%": 138,
-      "41-60%": 261,
-      "61-80%": 273,
-      "81-99%": 181,
-      "100%": 293
-    },
-    "2026-05-23": {
-      "0%": 116,
-      "1-20%": 23,
-      "21-40%": 129,
-      "41-60%": 217,
-      "61-80%": 254,
-      "81-99%": 239,
-      "100%": 331
-    },
-    "2026-05-24": {
-      "0%": 91,
-      "1-20%": 52,
-      "21-40%": 145,
-      "41-60%": 233,
-      "61-80%": 249,
-      "81-99%": 224,
-      "100%": 234
-    },
-    "2026-05-25": {
-      "0%": 135,
-      "1-20%": 25,
-      "21-40%": 136,
-      "41-60%": 205,
-      "61-80%": 212,
-      "81-99%": 169,
-      "100%": 354
-    },
-    "2026-05-26": {
-      "0%": 138,
-      "1-20%": 28,
-      "21-40%": 116,
-      "41-60%": 198,
-      "61-80%": 249,
-      "81-99%": 174,
-      "100%": 370
-    },
-    "2026-05-27": {
-      "0%": 155,
-      "1-20%": 49,
-      "21-40%": 146,
-      "41-60%": 230,
-      "61-80%": 290,
-      "81-99%": 148,
-      "100%": 326
-    },
-    "2026-05-28": {
-      "0%": 145,
-      "1-20%": 42,
-      "21-40%": 141,
-      "41-60%": 257,
-      "61-80%": 261,
-      "81-99%": 164,
-      "100%": 345
-    },
-    "2026-05-29": {
-      "0%": 163,
-      "1-20%": 61,
-      "21-40%": 184,
-      "41-60%": 237,
-      "61-80%": 267,
-      "81-99%": 174,
-      "100%": 247
-    },
-    "2026-05-30": {
-      "0%": 170,
-      "1-20%": 55,
-      "21-40%": 165,
-      "41-60%": 215,
-      "61-80%": 253,
-      "81-99%": 203,
-      "100%": 272
-    },
-    "2026-05-31": {
-      "0%": 133,
-      "1-20%": 42,
-      "21-40%": 132,
-      "41-60%": 206,
-      "61-80%": 235,
-      "81-99%": 225,
-      "100%": 270
-    },
-    "2026-05-10": {
-      "0%": 159,
-      "1-20%": 48,
-      "21-40%": 158,
-      "41-60%": 218,
-      "61-80%": 291,
-      "81-99%": 189,
-      "100%": 256
-    },
-    "2026-05-11": {
-      "0%": 146,
-      "1-20%": 28,
-      "21-40%": 111,
-      "41-60%": 181,
-      "61-80%": 257,
-      "81-99%": 132,
-      "100%": 376
-    },
-    "2026-05-12": {
-      "0%": 151,
-      "1-20%": 33,
-      "21-40%": 124,
-      "41-60%": 226,
-      "61-80%": 280,
-      "81-99%": 178,
-      "100%": 368
-    },
-    "2026-05-13": {
-      "0%": 212,
-      "1-20%": 69,
-      "21-40%": 171,
-      "41-60%": 238,
-      "61-80%": 263,
-      "81-99%": 175,
-      "100%": 287
-    },
-    "2026-05-14": {
-      "0%": 118,
-      "1-20%": 42,
-      "21-40%": 148,
-      "41-60%": 252,
-      "61-80%": 307,
-      "81-99%": 194,
-      "100%": 347
-    },
-    "2026-05-15": {
-      "0%": 145,
-      "1-20%": 63,
-      "21-40%": 167,
-      "41-60%": 267,
-      "61-80%": 309,
-      "81-99%": 155,
-      "100%": 350
-    },
-    "2026-05-16": {
-      "0%": 133,
-      "1-20%": 50,
-      "21-40%": 166,
-      "41-60%": 238,
-      "61-80%": 308,
-      "81-99%": 162,
-      "100%": 332
-    }
-  }
+  ]
 }
 </script>
 <script>
 const DATA = JSON.parse(document.getElementById("report-data").textContent);
 const DO_BUCKETS = DATA.do_buckets;
-const AR_BUCKETS = DATA.ar_buckets;
 const DO_SUMMARY_BUCKETS = DATA.do_summary_buckets;
-const DATES = DATA.dates;
-const WD = DATA.weekday_map;
-const WEEKS = DATA.weeks;
 
 const fmt = (n) => Number(n).toLocaleString("en-US");
 const pct = (n, total) => total ? (n / total) * 100 : 0;
 const pctStr = (n, total) => total ? ((n / total) * 100).toFixed(1) + "%" : "0.0%";
 
-const PALETTE = ["#4f9dff", "#ffb54f", "#5fc88a", "#e35d6a", "#a78bfa", "#f0c33b", "#33c4d4"];
+const PALETTE = ["#4f9dff", "#ffb54f", "#5fc88a", "#e35d6a", "#a78bfa", "#f0c33b", "#33c4d4", "#ff8585"];
 const STACK_PALETTE = ["#6b7280", "#4f9dff", "#5fc88a", "#f0c33b", "#f08c33", "#e35d6a", "#a78bfa"];
 
 Chart.defaults.color = "#8b96a3";
@@ -879,58 +1686,269 @@ Chart.defaults.borderColor = "#2a313c";
 Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif';
 Chart.defaults.font.size = 12;
 
-let selected = new Set();
+const cityState = new Map();
 
-function renderSubline() {
-  const range = `${DATA.date_range.start.slice(5)} – ${DATA.date_range.end.slice(5)} May 2026`;
-  document.getElementById("subline").textContent =
-    `City: Kyiv · ${WEEKS.length} weeks · ${DATES.length} days (${range}) · ` +
-    `Active courier = courier with online hours > 0 that day · Click days to compare`;
+function shortDate(d) { return d.slice(5); }
+function weekdayOf(city, d) { return city.weekday_map[d]; }
+
+function initCity(city) {
+  cityState.set(city.name, {
+    selectedDays: new Set(),
+    selectedWeeks: new Set(city.weeks.map(w => w.id)),
+  });
 }
 
-function renderKpis() {
-  const el = document.getElementById("kpis");
-  el.innerHTML = DATES.map((d) => {
-    const t = DATA.daily_totals[d];
-    const ar = t.total_accepted / t.total_proposed * 100;
+function totalRange() {
+  let mn = "9999-12-31", mx = "";
+  DATA.cities.forEach(c => {
+    if (c.dates[0] < mn) mn = c.dates[0];
+    if (c.dates[c.dates.length - 1] > mx) mx = c.dates[c.dates.length - 1];
+  });
+  return [mn, mx];
+}
+
+function renderSubline() {
+  const [a, b] = totalRange();
+  document.getElementById("subline").textContent =
+    `${DATA.cities.length} cities · range ${a} → ${b} · ` +
+    `Active courier = courier with online hours > 0 that day · ` +
+    `Click any card to toggle for comparison`;
+}
+
+function renderCityTabs() {
+  const el = document.getElementById("cityTabs");
+  el.innerHTML = DATA.cities.map((c, i) => `
+    <button class="city-tab ${i === 0 ? "active" : ""}" data-city="${c.name}">
+      ${c.name} <span style="opacity:0.6;font-weight:400">· ${c.dates.length}d / ${c.weeks.length}w</span>
+    </button>
+  `).join("");
+  el.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".city-tab");
+    if (!btn) return;
+    document.querySelectorAll(".city-tab").forEach(t => t.classList.toggle("active", t === btn));
+    showCity(btn.dataset.city);
+  });
+}
+
+function destroyCharts(root) {
+  root.querySelectorAll("canvas").forEach(c => {
+    if (c._chart) { c._chart.destroy(); c._chart = null; }
+  });
+}
+
+function newChart(canvas, config) {
+  if (canvas._chart) canvas._chart.destroy();
+  canvas._chart = new Chart(canvas, config);
+  return canvas._chart;
+}
+
+function buildBucketTable(tableEl, buckets, columns, getCell, totals) {
+  let html = `<thead><tr><th>Bucket</th>`;
+  columns.forEach((col, i) => {
+    html += `<th>${col.label}<br><span style="font-weight:400;text-transform:none;">${fmt(totals[i])} ${col.suffix || ""}</span></th>`;
+  });
+  html += `</tr></thead><tbody>`;
+  buckets.forEach(b => {
+    html += `<tr><td>${b}</td>`;
+    columns.forEach((_col, i) => {
+      const c = getCell(i, b);
+      html += `<td>${fmt(c)} <span class="pct">${pctStr(c, totals[i])}</span></td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody>`;
+  tableEl.innerHTML = html;
+}
+
+function renderWeeklyTotals(root, city) {
+  const state = cityState.get(city.name);
+  const wgs = root.querySelector(".wgs");
+  wgs.innerHTML = city.weeks.map(w => `
+    <div class="week-card" data-id="${w.id}">
+      <div class="label"><span class="num">${w.label.split("·")[0].trim()}</span> · ${w.label.split("·")[1].trim()}</div>
+      <div class="value">${fmt(Math.round(w.total_do))}</div>
+      <div class="meta">DO total · ${fmt(w.total_active_couriers)} courier-days</div>
+    </div>
+  `).join("");
+  wgs.addEventListener("click", (ev) => {
+    const card = ev.target.closest(".week-card");
+    if (!card) return;
+    const id = card.dataset.id;
+    if (state.selectedWeeks.has(id)) state.selectedWeeks.delete(id);
+    else state.selectedWeeks.add(id);
+    rerenderWeekly(root, city);
+  });
+
+  const wqf = root.querySelector(".wqf");
+  wqf.innerHTML = `
+    <button class="qf primary" data-action="all-weeks">All weeks</button>
+    <button class="qf" data-action="last-3">Last 3 weeks</button>
+    <button class="qf" data-action="last-2">Last 2 weeks</button>
+    <button class="qf" data-action="clear-weeks">Clear</button>
+  `;
+  wqf.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".qf");
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const allIds = city.weeks.map(w => w.id);
+    if (action === "all-weeks") state.selectedWeeks = new Set(allIds);
+    else if (action === "last-3") state.selectedWeeks = new Set(allIds.slice(-3));
+    else if (action === "last-2") state.selectedWeeks = new Set(allIds.slice(-2));
+    else if (action === "clear-weeks") state.selectedWeeks = new Set();
+    rerenderWeekly(root, city);
+  });
+
+  rerenderWeekly(root, city);
+}
+
+function rerenderWeekly(root, city) {
+  const state = cityState.get(city.name);
+  root.querySelectorAll(".week-card").forEach(el => {
+    el.classList.toggle("selected", state.selectedWeeks.has(el.dataset.id));
+  });
+
+  const selectedWeeks = city.weeks.filter(w => state.selectedWeeks.has(w.id));
+  const titleEl = root.querySelector(".weekly-section-title");
+  titleEl.textContent = selectedWeeks.length === 0
+    ? "Select at least one week"
+    : `Weekly comparison · ${selectedWeeks.length} of ${city.weeks.length} weeks`;
+
+  const wtCanvas = root.querySelector(".weeklyTotalsChart");
+  const wbCanvas = root.querySelector(".weeklyBucketsChart");
+
+  if (selectedWeeks.length === 0) {
+    if (wtCanvas._chart) { wtCanvas._chart.destroy(); wtCanvas._chart = null; }
+    if (wbCanvas._chart) { wbCanvas._chart.destroy(); wbCanvas._chart = null; }
+    root.querySelector(".weeklyBucketsTable").innerHTML = "";
+    return;
+  }
+
+  // Weekly totals chart
+  const labels = selectedWeeks.map(w => w.label.split("·")[0].trim() + " · " + w.label.split("·")[1].trim());
+  const totals = selectedWeeks.map(w => Math.round(w.total_do));
+  newChart(wtCanvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Total DO",
+        data: totals,
+        backgroundColor: PALETTE[0],
+        borderRadius: 4,
+        maxBarThickness: 50,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `${fmt(c.parsed.y)} DO` } },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 30, minRotation: 0 } },
+        y: { beginAtZero: true, grid: { color: "rgba(255,255,255,0.05)" }, ticks: { callback: v => fmt(v) } },
+      },
+    },
+  });
+  root.querySelector(".weekly-totals-meta").textContent =
+    `Sum: ${fmt(totals.reduce((a,b) => a+b, 0))} DO across ${selectedWeeks.length} weeks`;
+
+  // Weekly per-courier DO buckets - grouped chart
+  const datasets = selectedWeeks.map((w, i) => {
+    const total = sumValues(w.do_summary);
+    const data = DO_SUMMARY_BUCKETS.map(b => w.do_summary[b] || 0);
+    return {
+      label: w.label.split("·")[0].trim(),
+      data,
+      backgroundColor: PALETTE[i % PALETTE.length],
+      borderRadius: 4,
+      maxBarThickness: 24,
+      _pct: data.map(v => pctStr(v, total)),
+    };
+  });
+  newChart(wbCanvas, {
+    type: "bar",
+    data: { labels: DO_SUMMARY_BUCKETS, datasets },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom", labels: { boxWidth: 10, boxHeight: 10 } },
+        tooltip: {
+          callbacks: { label: c => `${c.dataset.label}: ${fmt(c.parsed.y)} couriers (${c.dataset._pct[c.dataIndex]})` },
+        },
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: true, grid: { color: "rgba(255,255,255,0.05)" }, ticks: { callback: v => fmt(v) } },
+      },
+    },
+  });
+  root.querySelector(".weekly-bucket-meta").textContent =
+    selectedWeeks.map(w => `${w.label.split("·")[0].trim()}: ${fmt(sumValues(w.do_summary))}`).join(" · ");
+
+  buildBucketTable(
+    root.querySelector(".weeklyBucketsTable"),
+    DO_SUMMARY_BUCKETS,
+    selectedWeeks.map(w => ({ label: w.label.split("·")[0].trim() + " " + w.label.split("·")[1].trim(), suffix: "couriers" })),
+    (i, b) => selectedWeeks[i].do_summary[b] || 0,
+    selectedWeeks.map(w => sumValues(w.do_summary))
+  );
+}
+
+function sumValues(obj) {
+  return Object.values(obj).reduce((a, b) => a + (b || 0), 0);
+}
+
+function renderDailyKpis(root, city) {
+  const state = cityState.get(city.name);
+  const el = root.querySelector(".kpis-grid");
+  el.innerHTML = city.dates.map(d => {
+    const t = city.daily_totals[d];
     return `
       <div class="kpi" data-day="${d}">
-        <div class="label"><span class="wd">${WD[d]}</span> · ${d.slice(5)}</div>
+        <div class="label"><span class="wd">${weekdayOf(city, d)}</span> · ${shortDate(d)}</div>
         <div class="value">${fmt(t.active_couriers)}</div>
-        <div class="meta">${fmt(Math.round(t.total_delivered))} DO · AR ${ar.toFixed(1)}%</div>
+        <div class="meta">${fmt(Math.round(t.total_delivered))} DO</div>
       </div>`;
   }).join("");
   el.addEventListener("click", (ev) => {
     const card = ev.target.closest(".kpi");
     if (!card) return;
-    toggle(card.dataset.day);
+    const d = card.dataset.day;
+    if (state.selectedDays.has(d)) state.selectedDays.delete(d);
+    else state.selectedDays.add(d);
+    rerenderDays(root, city);
   });
 }
 
-function renderWeekTabs() {
-  const el = document.getElementById("weekTabs");
-  el.innerHTML = WEEKS.map((w) => `
+function renderDayTabs(root, city) {
+  const el = root.querySelector(".weekTabs");
+  el.innerHTML = city.weeks.map(w => `
     <div class="weekrow">
       <span class="week-label">${w.label.split("·")[0].trim()}</span>
       ${w.dates.map(d => `
         <button class="tab" data-day="${d}">
-          <span class="wd">${WD[d]}</span>
-          <span class="dt">${d.slice(5)}</span>
+          <span class="wd">${weekdayOf(city, d)}</span>
+          <span class="dt">${shortDate(d)}</span>
         </button>
       `).join("")}
     </div>
   `).join("");
+  const state = cityState.get(city.name);
   el.addEventListener("click", (ev) => {
     const btn = ev.target.closest(".tab");
     if (!btn) return;
-    toggle(btn.dataset.day);
+    const d = btn.dataset.day;
+    if (state.selectedDays.has(d)) state.selectedDays.delete(d);
+    else state.selectedDays.add(d);
+    rerenderDays(root, city);
   });
 }
 
-function renderQuickFilters() {
-  const el = document.getElementById("qfRow");
+function renderDayQuickFilters(root, city) {
+  const el = root.querySelector(".dqf");
   const wds = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const weekButtons = WEEKS.map((w, i) =>
+  const weekButtons = city.weeks.map((w, i) =>
     `<button class="qf" data-action="week" data-week="${i}">${w.label.split("·")[0].trim()} only</button>`
   ).join("");
   el.innerHTML = `
@@ -941,268 +1959,143 @@ function renderQuickFilters() {
     <span class="qf-sep"></span>
     <button class="qf" data-action="clear">Clear</button>
   `;
+  const state = cityState.get(city.name);
   el.addEventListener("click", (ev) => {
     const btn = ev.target.closest(".qf");
     if (!btn) return;
     const action = btn.dataset.action;
-    if (action === "all") selected = new Set(DATES);
-    else if (action === "week") selected = new Set(WEEKS[+btn.dataset.week].dates);
+    if (action === "all") state.selectedDays = new Set(city.dates);
+    else if (action === "week") state.selectedDays = new Set(city.weeks[+btn.dataset.week].dates);
     else if (action === "weekday") {
       const wd = btn.dataset.wd;
-      selected = new Set(DATES.filter(d => WD[d] === wd));
-    } else if (action === "clear") selected = new Set();
-    rerender();
+      state.selectedDays = new Set(city.dates.filter(d => weekdayOf(city, d) === wd));
+    } else if (action === "clear") state.selectedDays = new Set();
+    rerenderDays(root, city);
   });
 }
 
-function toggle(day) {
-  if (selected.has(day)) selected.delete(day);
-  else selected.add(day);
-  rerender();
-}
-
-function selectedSorted() {
-  return DATES.filter(d => selected.has(d));
-}
-
-function refreshSelection() {
-  document.querySelectorAll(".kpi").forEach(el => {
-    el.classList.toggle("selected", selected.has(el.dataset.day));
+function rerenderDays(root, city) {
+  const state = cityState.get(city.name);
+  root.querySelectorAll(".kpi").forEach(el => {
+    el.classList.toggle("selected", state.selectedDays.has(el.dataset.day));
   });
-  document.querySelectorAll(".tab").forEach(el => {
-    el.classList.toggle("active", selected.has(el.dataset.day));
+  root.querySelectorAll(".tab").forEach(el => {
+    el.classList.toggle("active", state.selectedDays.has(el.dataset.day));
   });
-}
 
-function buildCompareTable(tableEl, buckets, selectedDays, dailyData, totalKey) {
-  const totals = selectedDays.map(d => DATA.daily_totals[d][totalKey]);
-  let html = `<thead><tr><th>Bucket</th>`;
-  selectedDays.forEach((d, i) => {
-    html += `<th>${WD[d]} ${d.slice(5)}<br><span style="font-weight:400;text-transform:none;">${fmt(totals[i])} cou</span></th>`;
-  });
-  html += `</tr></thead><tbody>`;
-  buckets.forEach(b => {
-    html += `<tr><td>${b}</td>`;
-    selectedDays.forEach((d, i) => {
-      const c = (dailyData[d] || {})[b] || 0;
-      const p = pctStr(c, totals[i]);
-      html += `<td>${fmt(c)} <span class="pct">${p}</span></td>`;
-    });
-    html += `</tr>`;
-  });
-  html += `</tbody>`;
-  tableEl.innerHTML = html;
-}
+  const sel = city.dates.filter(d => state.selectedDays.has(d));
+  const titleEl = root.querySelector(".compare-title");
+  titleEl.textContent = sel.length === 0
+    ? "Select at least one day above"
+    : sel.length === 1
+      ? `Daily distribution · ${weekdayOf(city, sel[0])} ${sel[0]}`
+      : `Compare ${sel.length} days`;
 
-function makeGroupedChart(ctxId, labels, datasets) {
-  const canvas = document.getElementById(ctxId);
-  if (canvas._chartInstance) canvas._chartInstance.destroy();
-  const chart = new Chart(canvas, {
+  const metaEl = root.querySelector(".compare-meta");
+  metaEl.innerHTML = sel.map(d =>
+    `${weekdayOf(city, d)} ${shortDate(d)}: <b>${fmt(city.daily_totals[d].active_couriers)}</b>`
+  ).join(" · ");
+
+  const canvas = root.querySelector(".dailyCompareChart");
+  const tableEl = root.querySelector(".dailyCompareTable");
+
+  if (sel.length === 0) {
+    if (canvas._chart) { canvas._chart.destroy(); canvas._chart = null; }
+    tableEl.innerHTML = "";
+    return;
+  }
+
+  const datasets = sel.map((d, i) => {
+    const total = city.daily_totals[d].active_couriers;
+    const data = DO_BUCKETS.map(b => (city.do_daily[d] || {})[b] || 0);
+    const weekIdx = city.weeks.findIndex(w => w.dates.includes(d));
+    return {
+      label: `${weekdayOf(city, d)} ${shortDate(d)}`,
+      data,
+      backgroundColor: PALETTE[weekIdx % PALETTE.length],
+      borderRadius: 4,
+      maxBarThickness: 28,
+      _pct: data.map(v => pctStr(v, total)),
+    };
+  });
+  newChart(canvas, {
     type: "bar",
-    data: { labels, datasets },
+    data: { labels: DO_BUCKETS, datasets },
     options: {
       maintainAspectRatio: false,
       plugins: {
         legend: { position: "bottom", labels: { boxWidth: 10, boxHeight: 10 } },
         tooltip: {
-          callbacks: {
-            label: (c) => `${c.dataset.label}: ${fmt(c.parsed.y)} couriers (${c.dataset._pct[c.dataIndex]})`,
-          },
+          callbacks: { label: c => `${c.dataset.label}: ${fmt(c.parsed.y)} couriers (${c.dataset._pct[c.dataIndex]})` },
         },
       },
       scales: {
         x: { grid: { display: false } },
-        y: {
-          beginAtZero: true,
-          grid: { color: "rgba(255,255,255,0.05)" },
-          ticks: { callback: (v) => fmt(v) },
-        },
+        y: { beginAtZero: true, grid: { color: "rgba(255,255,255,0.05)" }, ticks: { callback: v => fmt(v) } },
       },
     },
   });
-  canvas._chartInstance = chart;
-  return chart;
+  buildBucketTable(
+    tableEl,
+    DO_BUCKETS,
+    sel.map(d => ({ label: `${weekdayOf(city, d)} ${shortDate(d)}`, suffix: "cou" })),
+    (i, b) => (city.do_daily[sel[i]] || {})[b] || 0,
+    sel.map(d => city.daily_totals[d].active_couriers)
+  );
 }
 
-function weekIndexOf(date) {
-  for (let i = 0; i < WEEKS.length; i++) {
-    if (WEEKS[i].dates.includes(date)) return i;
-  }
-  return 0;
-}
-
-function renderCompare() {
-  const sel = selectedSorted();
-  const titleEl = document.getElementById("compareSectionTitle");
-  titleEl.textContent = sel.length === 0
-    ? "Select at least one day above"
-    : sel.length === 1
-      ? `Daily distribution · ${WD[sel[0]]} ${sel[0]}`
-      : `Compare ${sel.length} days`;
-
-  document.getElementById("doCompareTotal").innerHTML =
-    sel.map(d => `${WD[d]} ${d.slice(5)}: <b>${fmt(DATA.daily_totals[d].active_couriers)}</b>`).join(" · ");
-  document.getElementById("arCompareTotal").innerHTML =
-    sel.map(d => `${WD[d]} ${d.slice(5)}: <b>${fmt(DATA.daily_totals[d].couriers_with_offers)}</b>`).join(" · ");
-
-  if (sel.length === 0) {
-    ["doCompareChart", "arCompareChart"].forEach(id => {
-      const c = document.getElementById(id);
-      if (c._chartInstance) { c._chartInstance.destroy(); c._chartInstance = null; }
-    });
-    document.getElementById("doCompareTable").innerHTML = "";
-    document.getElementById("arCompareTable").innerHTML = "";
-    return;
-  }
-
-  const doDatasets = sel.map((d) => {
-    const total = DATA.daily_totals[d].active_couriers;
-    const data = DO_BUCKETS.map(b => (DATA.do_daily[d] || {})[b] || 0);
-    return {
-      label: `${WD[d]} ${d.slice(5)}`,
-      data,
-      backgroundColor: PALETTE[weekIndexOf(d) % PALETTE.length],
-      borderRadius: 4,
-      maxBarThickness: 28,
-      _pct: data.map(v => pctStr(v, total)),
-    };
-  });
-  makeGroupedChart("doCompareChart", DO_BUCKETS, doDatasets);
-  buildCompareTable(document.getElementById("doCompareTable"), DO_BUCKETS, sel, DATA.do_daily, "active_couriers");
-
-  const arDatasets = sel.map((d) => {
-    const total = DATA.daily_totals[d].couriers_with_offers;
-    const data = AR_BUCKETS.map(b => (DATA.ar_daily[d] || {})[b] || 0);
-    return {
-      label: `${WD[d]} ${d.slice(5)}`,
-      data,
-      backgroundColor: PALETTE[weekIndexOf(d) % PALETTE.length],
-      borderRadius: 4,
-      maxBarThickness: 28,
-      _pct: data.map(v => pctStr(v, total)),
-    };
-  });
-  makeGroupedChart("arCompareChart", AR_BUCKETS, arDatasets);
-  buildCompareTable(document.getElementById("arCompareTable"), AR_BUCKETS, sel, DATA.ar_daily, "couriers_with_offers");
-}
-
-function buildSummaryTable(tableEl, buckets, counts, total, accent) {
-  const max = Math.max(...buckets.map(b => counts[b] || 0));
-  let html = `<thead><tr><th>Bucket</th><th>Couriers</th><th>%</th><th></th></tr></thead><tbody>`;
-  buckets.forEach(b => {
-    const c = counts[b] || 0;
-    const p = pct(c, total);
-    const w = max > 0 ? (c / max) * 120 : 0;
-    html += `<tr>
-      <td>${b}</td>
-      <td>${fmt(c)}</td>
-      <td class="pct">${p.toFixed(1)}%</td>
-      <td><span style="display:inline-block;height:6px;border-radius:3px;background:${accent};width:${w}px;min-width:1px;"></span></td>
-    </tr>`;
-  });
-  html += `</tbody>`;
-  tableEl.innerHTML = html;
-}
-
-function renderWeeks() {
-  const el = document.getElementById("weeksGrid");
-  el.innerHTML = WEEKS.map(w => `
-    <div class="card week-block">
-      <div class="card-title">
-        <h2>${w.label}</h2>
-        <div class="total">${w.dates[0]} → ${w.dates[w.dates.length - 1]}</div>
-      </div>
-      <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px">
-        <div>
-          <div style="color:var(--muted);font-size:12px;margin-bottom:6px">DO total per courier</div>
-          <div class="chart-wrap" style="height:200px"><canvas id="doSum-${w.id}"></canvas></div>
-          <table id="doSumT-${w.id}"></table>
-        </div>
-        <div>
-          <div style="color:var(--muted);font-size:12px;margin-bottom:6px">AR% over the week</div>
-          <div class="chart-wrap" style="height:200px"><canvas id="arSum-${w.id}"></canvas></div>
-          <table id="arSumT-${w.id}"></table>
-        </div>
-      </div>
-    </div>
-  `).join("");
-
-  WEEKS.forEach(w => {
-    const doTotal = DO_SUMMARY_BUCKETS.reduce((s, b) => s + (w.do_summary[b] || 0), 0);
-    const arTotal = AR_BUCKETS.reduce((s, b) => s + (w.ar_summary[b] || 0), 0);
-    const doData = DO_SUMMARY_BUCKETS.map(b => w.do_summary[b] || 0);
-    const arData = AR_BUCKETS.map(b => w.ar_summary[b] || 0);
-
-    new Chart(document.getElementById(`doSum-${w.id}`), {
-      type: "bar",
-      data: { labels: DO_SUMMARY_BUCKETS, datasets: [{ data: doData, backgroundColor: "#4f9dff", borderRadius: 4, maxBarThickness: 32 }] },
-      options: {
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${fmt(doData[c.dataIndex])} (${pctStr(doData[c.dataIndex], doTotal)})` } } },
-        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: "rgba(255,255,255,0.05)" } } },
-      },
-    });
-    new Chart(document.getElementById(`arSum-${w.id}`), {
-      type: "bar",
-      data: { labels: AR_BUCKETS, datasets: [{ data: arData, backgroundColor: "#ffb54f", borderRadius: 4, maxBarThickness: 32 }] },
-      options: {
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${fmt(arData[c.dataIndex])} (${pctStr(arData[c.dataIndex], arTotal)})` } } },
-        scales: { x: { grid: { display: false } }, y: { beginAtZero: true, grid: { color: "rgba(255,255,255,0.05)" } } },
-      },
-    });
-
-    buildSummaryTable(document.getElementById(`doSumT-${w.id}`), DO_SUMMARY_BUCKETS, w.do_summary, doTotal, "#4f9dff");
-    buildSummaryTable(document.getElementById(`arSumT-${w.id}`), AR_BUCKETS, w.ar_summary, arTotal, "#ffb54f");
-  });
-}
-
-function renderStacked(canvasId, dailyData, buckets, totalKey) {
-  const datasets = buckets.map((b, i) => ({
+function renderStacked(root, city) {
+  const canvas = root.querySelector(".stackedChart");
+  const datasets = DO_BUCKETS.map((b, i) => ({
     label: b,
     backgroundColor: STACK_PALETTE[i % STACK_PALETTE.length],
-    data: DATES.map(d => {
-      const total = DATA.daily_totals[d][totalKey];
-      return pct(dailyData[d][b] || 0, total);
+    data: city.dates.map(d => {
+      const total = city.daily_totals[d].active_couriers;
+      return pct((city.do_daily[d] || {})[b] || 0, total);
     }),
   }));
-  const labels = DATES.map(d => `${WD[d]} ${d.slice(5)}`);
-  new Chart(document.getElementById(canvasId), {
+  const labels = city.dates.map(d => `${weekdayOf(city, d)} ${shortDate(d)}`);
+  newChart(canvas, {
     type: "bar",
     data: { labels, datasets },
     options: {
       maintainAspectRatio: false,
       plugins: {
         legend: { position: "bottom", labels: { boxWidth: 10, boxHeight: 10 } },
-        tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}%` } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}%` } },
       },
       scales: {
-        x: { stacked: true, grid: { display: false }, ticks: { maxRotation: 60, minRotation: 60, autoSkip: false } },
-        y: {
-          stacked: true, beginAtZero: true, max: 100,
-          grid: { color: "rgba(255,255,255,0.05)" },
-          ticks: { callback: (v) => v + "%" },
-        },
+        x: { stacked: true, grid: { display: false }, ticks: { maxRotation: 75, minRotation: 75, autoSkip: false } },
+        y: { stacked: true, beginAtZero: true, max: 100, grid: { color: "rgba(255,255,255,0.05)" }, ticks: { callback: v => v + "%" } },
       },
     },
   });
 }
 
-function rerender() {
-  refreshSelection();
-  renderCompare();
+function showCity(name) {
+  const city = DATA.cities.find(c => c.name === name);
+  if (!city) return;
+  if (!cityState.has(city.name)) initCity(city);
+
+  const tpl = document.getElementById("cityTemplate");
+  const root = tpl.content.firstElementChild.cloneNode(true);
+  const container = document.getElementById("cityContent");
+  destroyCharts(container);
+  container.innerHTML = "";
+  container.appendChild(root);
+
+  renderWeeklyTotals(root, city);
+  renderDailyKpis(root, city);
+  renderDayTabs(root, city);
+  renderDayQuickFilters(root, city);
+  renderStacked(root, city);
+  rerenderDays(root, city);
 }
 
-selected = new Set(DATES.filter(d => WD[d] === "Tue"));
-
+DATA.cities.forEach(initCity);
 renderSubline();
-renderKpis();
-renderWeekTabs();
-renderQuickFilters();
-renderWeeks();
-renderStacked("doStackedChart", DATA.do_daily, DO_BUCKETS, "active_couriers");
-renderStacked("arStackedChart", DATA.ar_daily, AR_BUCKETS, "couriers_with_offers");
-rerender();
+renderCityTabs();
+showCity(DATA.cities[0].name);
 </script>
 </body>
 </html>
